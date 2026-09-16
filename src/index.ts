@@ -1,8 +1,10 @@
 import { type ExtensionAPI, getAgentDir } from "@earendil-works/pi-coding-agent";
+import { registerBenchmarkCommand } from "./benchmark/command.ts";
 import { discoverModels, MISSING_KEY } from "./discovery.ts";
 import { nebiusProvider } from "./provider.ts";
 
 export default async function nebius(pi: ExtensionAPI) {
+  registerBenchmarkCommand(pi);
   let pending: Promise<Awaited<ReturnType<typeof discoverModels>>> | undefined;
   const initialize = (force = false) => {
     pending ??= discoverModels({

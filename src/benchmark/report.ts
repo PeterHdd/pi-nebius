@@ -1,12 +1,13 @@
 import type { Results } from "./types.ts";
 
 export function terminalReport(results: Results): string {
+  const unchecked = results.definition.validationMode === "none";
   const number = (value: number | null, decimals = 1) =>
     value === null ? "n/a" : value.toFixed(decimals);
   const rows = [
     [
       "MODEL",
-      "SUCCESS",
+      unchecked ? "FINISHED" : "SUCCESS",
       "MED COST",
       "MED WALL",
       "MEAN INPUT",
@@ -16,7 +17,7 @@ export function terminalReport(results: Results): string {
     ],
     ...results.aggregates.map((group) => [
       group.model,
-      `${group.successes}/${group.runs}`,
+      `${unchecked ? results.runs.filter((run) => run.model === group.model && run.failure === null).length : group.successes}/${group.runs}`,
       group.costUsd.median === null ? "n/a" : `$${group.costUsd.median.toFixed(5)}`,
       group.wallTimeMs.median === null ? "n/a" : `${(group.wallTimeMs.median / 1000).toFixed(2)}s`,
       number(group.inputTokens.mean, 0),
@@ -30,6 +31,9 @@ export function terminalReport(results: Results): string {
   return [
     `Benchmark: ${results.definition.name}`,
     `Completed: ${results.runs.length}/${results.plannedRuns} (${results.status})`,
+    ...(unchecked
+      ? ["Correctness: not checked. Finished means the agent completed without an execution error."]
+      : []),
     "",
     ...rows.map((row) =>
       row

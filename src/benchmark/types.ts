@@ -16,6 +16,7 @@ export interface BenchmarkDefinition {
   validationTimeout: number;
   tools: string[];
   systemPrompt?: string;
+  validationMode?: "none";
 }
 export interface ModelPricing {
   inputPerMillion: number;
@@ -147,6 +148,7 @@ export interface RunResult {
   observedEstimatedCostUsd: number | null;
   pricing: ModelPricing | null;
   validation: {
+    checked?: boolean;
     passed: boolean;
     exitCode: number | null;
     durationMs: number;
@@ -172,7 +174,7 @@ export interface ModelAggregate {
   model: string;
   runs: number;
   successes: number;
-  successRate: number;
+  successRate: number | null;
   costUsd: Distribution;
   wallTimeMs: Distribution;
   inputTokens: Distribution;

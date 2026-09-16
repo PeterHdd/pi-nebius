@@ -2,7 +2,7 @@
 
 Nebius Token Factory models in Pi's normal model picker, discovered using your API key.
 
-This package also includes an **agentic coding benchmark CLI**: repeated isolated Pi sessions, deterministic validation, per-request usage, tool metrics, and cost estimates. See [Benchmarking](docs/benchmarking.md) for the CLI, result schema, metrics, and four ready-to-run fixtures.
+This package also includes **benchmarks inside Pi**: run `/nebius-benchmark` to enter your own task prompt and compare models on copies of your current project. Results appear in Pi. A standalone CLI also supports scripted tasks, deterministic validation, and custom pricing. See [Benchmarking](docs/benchmarking.md) for the CLI, result schema, metrics, and four ready-to-run fixtures.
 
 ```bash
 npm ci
@@ -79,6 +79,39 @@ pi --provider nebius --model 'EXACT_ID_FROM_THE_LIST'
 `/nebius-refresh` forces discovery again and updates Pi's registered models. If a selected model was removed, use `/model` to choose a current one.
 
 The extension reads `NEBIUS_API_KEY` at startup for discovery and resolves it through Pi's native authentication interface for inference. It has no `/login` flow and never writes the key to a file. Set the variable in the shell that launches Pi; changing a parent shell's environment cannot change an already-running process. Restart Pi after changing it. Pi's explicit CLI/runtime authentication overrides remain Pi features, but discovery specifically requires `NEBIUS_API_KEY`.
+
+## Benchmark inside Pi
+
+After installing the extension, run this inside Pi:
+
+```text
+/nebius-benchmark
+```
+
+An editor asks for your own task prompt. The benchmark uses your selected Nebius model and a copy of the project directory where Pi is running. To compare models, supply their exact IDs:
+
+```text
+/nebius-benchmark --models zai-org/GLM-5.3,moonshotai/Kimi-K2.6 --runs 3
+```
+
+This runs the same prompt three times per model, sequentially, starting from the same project snapshot each time. It shows progress and a comparison of tokens, time, turns, and tools directly in Pi. Custom prompts report **correctness not checked**; completion does not prove the task was solved. Cost is unknown without a pricing snapshot (the standalone CLI supports `--pricing`).
+
+The snapshot includes current working files, including uncommitted changes, and respects Git ignores. It excludes `.git`, `.pi`, dependency/build folders, prior benchmark results, `.env` files, and `.pem`/`.key` files. Dependencies are not preinstalled; include setup instructions in your task if needed. Links and special files are rejected. Snapshots are limited to 10,000 files / 50 MiB. Run Pi from the project directory you want to benchmark.
+
+Runs use paid inference. Tools have normal host permissions: file copies are not an OS sandbox. Reports and each run's resulting files are retained under `benchmark-results/` in your project.
+
+```text
+/nebius-benchmark cancel
+/nebius-benchmark help
+```
+
+For an optional bundled coding task with automatic correctness tests:
+
+```text
+/nebius-benchmark --task fix-auth-bug --runs 3
+```
+
+Other bundled tasks: `add-api-endpoint`, `refactor-module`, and `multi-file-feature`. No build step or separate terminal is needed for these Pi commands.
 
 ## Dynamic model discovery
 

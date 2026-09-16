@@ -35,6 +35,9 @@ export interface RunnerOptions {
   onRun?: (result: RunResult) => void;
   /** Injectable worker only for integration tests/embedding; not exposed by the CLI. */
   workerPath?: string;
+  workerArgs?: string[];
+  /** Host Pi entry when running from a production-only extension installation. */
+  piEntry?: string;
 }
 export function classifyFailure(input: {
   timedOut?: boolean;
@@ -69,6 +72,7 @@ async function executeAgent(
   journal: string,
   signal: AbortSignal | undefined,
   workerPath: string | undefined,
+  workerArgs: string[] | undefined,
   redact: (text: string) => string,
 ) {
   let observation = emptyObservation();
@@ -79,7 +83,7 @@ async function executeAgent(
   let stopped = false;
   const started = performance.now();
   const worker = workerPath ?? fileURLToPath(new URL("./worker.js", import.meta.url));
-  const child = fork(worker, [], {
+  const child = fork(worker, workerArgs ?? [], {
     cwd,
     env: { ...cleanEnvironment(), PI_CODING_AGENT_DIR: input.agentDir },
     execArgv: [],
@@ -217,7 +221,13 @@ async function executeRun(
     estimatedCostUsd: null,
     observedEstimatedCostUsd: null,
     pricing: options.pricing?.models[model.id] ?? null,
-    validation: { passed: false, exitCode: null, durationMs: 0, commands: [] },
+    validation: {
+      checked: options.definition.validationMode !== "none",
+      passed: false,
+      exitCode: null,
+      durationMs: 0,
+      commands: [],
+    },
     setup: [],
     observation: emptyObservation(),
     workspace: archivedWorkspace,
@@ -251,6 +261,7 @@ async function executeRun(
       join(directory, "trace.jsonl"),
       options.signal,
       options.workerPath,
+      options.workerArgs,
       redact,
     );
     const observation = executed.observation;
@@ -316,7 +327,7 @@ async function executeRun(
       timedOut: executed.timedOut || result.validation.commands.some((command) => command.timedOut),
       cancelled: options.signal?.aborted,
       error: finalError,
-      validated: result.validation.passed,
+      validated: result.validation.checked ? result.validation.passed : undefined,
       toolErrors: result.toolErrors,
     });
     result.success = result.failure === null && result.validation.passed;
@@ -382,7 +393,8 @@ export async function runBenchmark(options: RunnerOptions): Promise<Results> {
     await readFile(new URL("../../package.json", import.meta.url), "utf8"),
   );
   // Resolve Pi's installed package through its public entry point, avoiding private exports.
-  const piEntry = fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent"));
+  const piEntry =
+    options.piEntry ?? fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent"));
   const piVersion = JSON.parse(
     await readFile(join(dirname(piEntry), "../package.json"), "utf8"),
   ).version;

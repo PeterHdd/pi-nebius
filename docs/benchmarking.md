@@ -10,7 +10,15 @@ task → Pi → model → tool → model → tool → … → deterministic vali
 
 Tokens/second alone cannot describe task efficiency. A slower model that solves a task in five turns can finish sooner and cost less than a faster model that needs twenty turns. Results therefore expose success, time, cumulative usage, tools, and cost separately. There is no composite score or LLM judge.
 
-## Install and run
+## Run inside Pi
+
+Use `/nebius-benchmark --models ID_A,ID_B --runs 3` to enter your own prompt in an editor. Without `--models`, it uses the currently selected Nebius model. Each run starts from a snapshot of the current project. Results appear in Pi; `/nebius-benchmark cancel` stops the run. See [the README](../README.md#benchmark-inside-pi) for snapshot exclusions and limits.
+
+Custom prompts have `definition.validationMode: "none"`, `validation.checked: false`, and no correctness verdict. `success` remains false because no validator established success; aggregate `successRate` is null. A null `failure` means execution finished without an error, not that the task was solved. The report labels this FINISHED and explicitly says correctness was not checked. Existing validated task reports keep their success semantics.
+
+Use `--task fix-auth-bug` (or another bundled task name) to run a task with deterministic validators instead. Both paths run on the installed host Pi SDK without a compiler or development dependencies.
+
+## Standalone CLI: install and run
 
 Requirements: **macOS or Linux**, **Node 22.19+**, and the tested **Pi 0.85.1** packages. The source checkout pins development versions; retain `package-lock.json` for reproducibility.
 

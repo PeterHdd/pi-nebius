@@ -96,7 +96,9 @@ export function aggregate(runs: RunResult[]): ModelAggregate[] {
       model,
       runs: group.length,
       successes,
-      successRate: successes / group.length,
+      successRate: group.every((run) => run.validation?.checked === false)
+        ? null
+        : successes / group.length,
       costUsd: distribution(group.map((run) => run.estimatedCostUsd)),
       wallTimeMs: distribution(group.map((run) => run.wallTimeMs)),
       inputTokens: distribution(group.map((run) => run.tokens.cumulativeInputTokens)),

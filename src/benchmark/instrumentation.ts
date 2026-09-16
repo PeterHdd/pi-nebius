@@ -51,11 +51,18 @@ export function redactor(secrets: string[]) {
 export class Instrumentation {
   readonly state = emptyObservation();
   private compacting = false;
+  private readonly update: (state: Observation) => void;
+  private readonly now: () => number;
+  private readonly redact: (text: string) => string;
   constructor(
-    private readonly update: (state: Observation) => void = () => {},
-    private readonly now: () => number = () => performance.now(),
-    private readonly redact: (text: string) => string = (text) => text,
-  ) {}
+    update: (state: Observation) => void = () => {},
+    now: () => number = () => performance.now(),
+    redact: (text: string) => string = (text) => text,
+  ) {
+    this.update = update;
+    this.now = now;
+    this.redact = redact;
+  }
 
   systemPrompt(prompt: string) {
     this.state.systemPromptHash = hash(prompt);
