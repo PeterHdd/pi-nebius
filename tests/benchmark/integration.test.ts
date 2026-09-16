@@ -134,12 +134,13 @@ test("real Pi sessions: two models × two runs, fresh isolation, traces, costs a
 });
 
 test("failure runs remain in output: deterministic rejection, API failure, timeout and cancellation", {
-  timeout: 20000,
+  timeout: 60000,
 }, async () => {
   const scratch = await mkdtemp(join(tmpdir(), "bench-failures-"));
   try {
     const { definition, directory } = await loadDefinition(join(root, "benchmarks/fix-auth-bug"));
-    definition.timeout = 1;
+    // These cases must reach the mock response, even on slower CI workers.
+    definition.timeout = 20;
     const models = parseModels({
       object: "list",
       data: [{ id: "mock/fail" }, { id: "mock/error" }, { id: "mock/timeout" }],
@@ -147,7 +148,7 @@ test("failure runs remain in output: deterministic rejection, API failure, timeo
     const results = await runBenchmark({
       definition,
       directory,
-      models,
+      models: models.filter((model) => model.id !== "mock/timeout"),
       runs: 1,
       concurrency: 1,
       output: join(scratch, "failures"),
@@ -155,7 +156,7 @@ test("failure runs remain in output: deterministic rejection, API failure, timeo
       pricing: null,
       workerPath,
     });
-    assert.equal(results.runs.length, 3);
+    assert.equal(results.runs.length, 2);
     const failed = results.runs.find((run) => run.model === "mock/fail");
     assert.equal(failed?.failure, "validation_failed");
     assert.equal(failed?.estimatedCostUsd, null);
@@ -163,14 +164,27 @@ test("failure runs remain in output: deterministic rejection, API failure, timeo
     assert.equal(error?.failure, "model_api_error", JSON.stringify(error));
     assert.equal(error?.tokens.usageComplete, false);
     assert.doesNotMatch(JSON.stringify(error), new RegExp(fakeKey));
-    const timeout = results.runs.find((run) => run.model === "mock/timeout");
+    const slowModel = models.find((model) => model.id === "mock/timeout");
+    assert.ok(slowModel);
+    // Only the deliberate timeout case uses a short deadline.
+    const timedOut = await runBenchmark({
+      definition: { ...definition, timeout: 1 },
+      directory,
+      models: [slowModel],
+      runs: 1,
+      concurrency: 1,
+      output: join(scratch, "timeout"),
+      apiKey: fakeKey,
+      pricing: null,
+      workerPath,
+    });
+    assert.equal(timedOut.runs.length, 1);
+    const timeout = timedOut.runs[0];
     assert.equal(timeout?.failure, "timeout");
     assert.equal(timeout?.tokens.cumulativeInputTokens, null);
     assert.ok((timeout?.wallTimeMs ?? Infinity) < 5000);
 
     const controller = new AbortController();
-    const slowModel = models.find((model) => model.id === "mock/timeout");
-    assert.ok(slowModel);
     const timer = setTimeout(() => controller.abort(), 500);
     const cancelled: Results = await runBenchmark({
       definition: { ...definition, timeout: 30 },
