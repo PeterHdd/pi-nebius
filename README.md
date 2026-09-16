@@ -6,6 +6,7 @@ This package also includes an **agentic coding benchmark CLI**: repeated isolate
 
 ```bash
 npm ci
+npm run build
 npm run benchmark -- --benchmark benchmarks/fix-auth-bug \
   --models 'EXACT_MODEL_ID_A,EXACT_MODEL_ID_B' --runs 3 \
   --output benchmark-results/auth-comparison
@@ -23,6 +24,16 @@ Requires **Node.js 22.19+ and Pi 0.85.1** (the tested version). This targets the
 
 ## Installation
 
+With Pi already installed:
+
+```bash
+pi install git:github.com/PeterHdd/pi-nebius
+export NEBIUS_API_KEY="your-api-key"
+pi
+```
+
+Run `/model`, search for `nebius`, and select a model.
+
 From this checkout:
 
 ```bash
@@ -37,7 +48,7 @@ Or try it without adding it to Pi's settings:
 pi -e /absolute/path/to/pi-nebius
 ```
 
-The provider uses Pi's `pi.extensions` manifest and loads TypeScript directly. The benchmark CLI is compiled into `dist/` by `npm ci`'s prepare step (or `npm run build`). YAML is the benchmark definition parser; neither component needs a separate server.
+The provider uses Pi's `pi.extensions` manifest and loads TypeScript directly. Pi installs Git packages with `npm install --omit=dev`; the extension needs no build step. To use the benchmark CLI from a source checkout, run `npm ci` and `npm run build` to generate `dist/`. YAML is the benchmark definition parser; neither component needs a separate server.
 
 Distribution is **GitHub-only**; npm publication is disabled. After the repository and a release tag exist, install with:
 
@@ -45,7 +56,7 @@ Distribution is **GitHub-only**; npm publication is disabled. After the reposito
 pi install git:github.com/PeterHdd/pi-nebius@v0.1.0
 ```
 
-This command requires the `v0.1.0` tag to be published first. Git installs run `npm install`, which builds the CLI. Development/build dependencies must be available; do not use `--omit=dev` for a source checkout. Pin a tag for reproducibility; install a newer tag explicitly to upgrade.
+This command requires the `v0.1.0` tag to be published first. Git installs require no compiler or development dependencies. Benchmark development uses a separate source checkout with development dependencies installed. Pin a tag for reproducibility; install a newer tag explicitly to upgrade.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [release instructions](docs/releasing.md), [CHANGELOG.md](CHANGELOG.md), and [SECURITY.md](SECURITY.md).
 

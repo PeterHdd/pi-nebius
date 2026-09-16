@@ -1,5 +1,5 @@
 import { createProvider, type ProviderStreams } from "@earendil-works/pi-ai";
-import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
+import { openAICompletionsApi } from "@earendil-works/pi-ai/compat";
 import { withErrorDetails } from "./errors.ts";
 import { BASE_URL, type NebiusModel } from "./models.ts";
 
