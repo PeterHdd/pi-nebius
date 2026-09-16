@@ -1,0 +1,12 @@
+schemaVersion: 1
+name: refactor-module
+task: |
+  Refactor invoice.mjs to remove the duplicated line-subtotal calculation.
+  Export a lineSubtotal(lines) helper and have both regularTotal and priorityTotal
+  call it. Keep all existing numeric behavior, discounts and shipping charges.
+  There should be a single reduce-based subtotal implementation. Do not change tests.
+validation:
+  - command: node
+    args: [--test, "{validation}/check.test.mjs"]
+timeout: 120
+validationTimeout: 15

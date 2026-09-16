@@ -1,0 +1,10 @@
+# Illustrative rates only. Replace IDs, rates, source and date with verified prices.
+schemaVersion: 1
+currency: USD
+asOf: 2026-09-16
+source: "EXAMPLE ONLY — replace with the source of your verified pricing"
+models:
+  REPLACE_WITH_EXACT_NEBIUS_MODEL_ID:
+    inputPerMillion: 1.00
+    outputPerMillion: 2.00
+    cachedInputPerMillion: 0.25

@@ -1,0 +1,15 @@
+schemaVersion: 1
+name: multi-file-feature
+task: |
+  Add task completion across store.mjs, routes.mjs and serialize.mjs. New tasks
+  start with completed:false. Export setCompleted(id, completed) from store.mjs;
+  update the stored task and return it, or return null for an unknown ID.
+  Expose PATCH /tasks/:id accepting JSON {completed:boolean}, returning the
+  updated serialized task with status 200, 400 for invalid JSON/nonboolean values,
+  or 404 for missing tasks. Serialization must include completed. Preserve GET /tasks
+  and POST /tasks. Completion must persist into subsequent GET results.
+validation:
+  - command: node
+    args: [--test, "{validation}/check.test.mjs"]
+timeout: 180
+validationTimeout: 15

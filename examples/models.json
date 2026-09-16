@@ -1,0 +1,32 @@
+{
+  "providers": {
+    "nebius": {
+      "models": [
+        {
+          "id": "REPLACE_WITH_EXACT_NEBIUS_MODEL_ID",
+          "name": "My verified Nebius model",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 32768,
+          "maxTokens": 4096,
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+          "compat": {
+            "supportsStore": false,
+            "supportsDeveloperRole": false,
+            "supportsStrictMode": false,
+            "supportsOpenAIGrammarTools": false,
+            "supportsReasoningEffort": false,
+            "supportsUsageInStreaming": true,
+            "maxTokensField": "max_tokens"
+          }
+        }
+      ],
+      "modelOverrides": {
+        "REPLACE_WITH_EXACT_NEBIUS_MODEL_ID": {
+          "contextWindow": 32768,
+          "maxTokens": 4096
+        }
+      }
+    }
+  }
+}

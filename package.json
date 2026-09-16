@@ -1,0 +1,74 @@
+{
+  "name": "pi-nebius",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nebius Token Factory provider and agentic coding benchmarks for Pi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PeterHdd/pi-nebius.git"
+  },
+  "homepage": "https://github.com/PeterHdd/pi-nebius#readme",
+  "bugs": {
+    "url": "https://github.com/PeterHdd/pi-nebius/issues"
+  },
+  "bin": {
+    "pi-nebius": "dist/benchmark/cli.js"
+  },
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "nebius",
+    "token-factory"
+  ],
+  "files": [
+    "src",
+    "dist",
+    "benchmarks",
+    "examples",
+    "docs",
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "0.85.1",
+    "@earendil-works/pi-coding-agent": "0.85.1",
+    "@types/node": "^22.0.0",
+    "@biomejs/biome": "^2.2.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "version:check": "node scripts/check-version.mjs",
+    "security:check": "node scripts/security-check.mjs",
+    "package:check": "npm run build && node scripts/check-package.mjs",
+    "prepare": "npm run build",
+    "pretest": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "test": "node --import tsx --test tests/*.test.ts tests/benchmark/*.test.ts",
+    "benchmark": "node dist/benchmark/cli.js benchmark",
+    "benchmark:demo": "npm run build && tsx tests/benchmark/demo.ts",
+    "test:live": "node --import tsx tests/live.ts",
+    "check": "npm run typecheck && npm run lint && npm test"
+  }
+}

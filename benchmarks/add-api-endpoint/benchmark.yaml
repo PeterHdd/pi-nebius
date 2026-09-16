@@ -1,0 +1,13 @@
+schemaVersion: 1
+name: add-api-endpoint
+task: |
+  Implement GET /api/sum in app.mjs, preserving GET /health. Accept query parameters
+  a and b as finite numbers and return JSON {sum: a+b} with status 200. Missing,
+  blank, nonnumeric, infinite inputs or non-finite sums must return 400. Other
+  methods on /api/sum return 405. Unknown routes return 404. Keep the existing
+  Fetch Request/Response interface and do not change tests.
+validation:
+  - command: node
+    args: [--test, "{validation}/check.test.mjs"]
+timeout: 120
+validationTimeout: 15
