@@ -1,7 +1,6 @@
 import type {
   Distribution,
   ModelAggregate,
-  ModelPricing,
   RequestTrace,
   RunResult,
   TokenTotals,
@@ -35,31 +34,6 @@ export function tokenTotals(requests: RequestTrace[]): TokenTotals {
   };
 }
 
-export function requestCost(request: RequestTrace, pricing: ModelPricing | null): number | null {
-  const usage = request.usage;
-  if (!pricing || usage?.inputTokens == null || usage.outputTokens == null) return null;
-  const cachedRate = pricing.cachedInputPerMillion ?? pricing.inputPerMillion;
-  if (usage.cachedInputTokens === null && cachedRate !== pricing.inputPerMillion) return null;
-  const cached = usage.cachedInputTokens ?? 0;
-  if (cached > usage.inputTokens) return null;
-  // Reasoning tokens are a subset of output: never charge for them twice.
-  return (
-    ((usage.inputTokens - cached) * pricing.inputPerMillion +
-      cached * cachedRate +
-      usage.outputTokens * pricing.outputPerMillion) /
-      1_000_000 +
-    (pricing.requestUsd ?? 0)
-  );
-}
-export function totalCost(requests: RequestTrace[], pricing: ModelPricing | null) {
-  const costs = requests.map((request) => requestCost(request, pricing));
-  const known = costs.filter((cost): cost is number => cost !== null);
-  const observed = known.length ? known.reduce((a, b) => a + b, 0) : null;
-  return {
-    estimatedCostUsd: costs.length > 0 && known.length === costs.length ? observed : null,
-    observedEstimatedCostUsd: observed,
-  };
-}
 export function distribution(values: Array<number | null>): Distribution {
   const known = values
     .filter((value): value is number => value !== null && Number.isFinite(value))
@@ -99,7 +73,6 @@ export function aggregate(runs: RunResult[]): ModelAggregate[] {
       successRate: group.every((run) => run.validation?.checked === false)
         ? null
         : successes / group.length,
-      costUsd: distribution(group.map((run) => run.estimatedCostUsd)),
       wallTimeMs: distribution(group.map((run) => run.wallTimeMs)),
       inputTokens: distribution(group.map((run) => run.tokens.cumulativeInputTokens)),
       outputTokens: distribution(group.map((run) => run.tokens.cumulativeOutputTokens)),

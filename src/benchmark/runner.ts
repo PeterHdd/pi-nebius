@@ -7,14 +7,13 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NebiusModel } from "../models.ts";
 import { emptyObservation, hash, redactor } from "./instrumentation.ts";
-import { aggregate, intervalDuration, tokenTotals, totalCost } from "./metrics.ts";
+import { aggregate, intervalDuration, tokenTotals } from "./metrics.ts";
 import { cleanEnvironment, descendants, runCommand, terminateGroup } from "./process.ts";
 import type {
   BenchmarkDefinition,
   Command,
   Failure,
   Observation,
-  PricingSnapshot,
   Results,
   RunResult,
   WorkerInput,
@@ -30,7 +29,6 @@ export interface RunnerOptions {
   concurrency: number;
   output: string;
   apiKey: string;
-  pricing: PricingSnapshot | null;
   signal?: AbortSignal;
   onRun?: (result: RunResult) => void;
   /** Injectable worker only for integration tests/embedding; not exposed by the CLI. */
@@ -119,7 +117,7 @@ async function executeAgent(
       if (message.type === "observation") {
         observation = message.observation;
         try {
-          appendFileSync(journal, `${redact(JSON.stringify({ schemaVersion: 1, ...message }))}\n`, {
+          appendFileSync(journal, `${redact(JSON.stringify({ schemaVersion: 2, ...message }))}\n`, {
             mode: 0o600,
           });
         } catch (caught) {
@@ -195,7 +193,7 @@ async function executeRun(
   const validationDirectory = join(directory, "validation");
   const redact = redactor([options.apiKey]);
   const result: RunResult = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id,
     benchmark: options.definition.name,
     model: model.id,
@@ -218,9 +216,6 @@ async function executeRun(
     toolErrors: 0,
     toolCallsByType: {},
     tokens: tokenTotals([]),
-    estimatedCostUsd: null,
-    observedEstimatedCostUsd: null,
-    pricing: options.pricing?.models[model.id] ?? null,
     validation: {
       checked: options.definition.validationMode !== "none",
       passed: false,
@@ -289,7 +284,6 @@ async function executeRun(
         ? first.firstContentAtMs - (observation.agentStartedAtMs ?? first.startedAtMs)
         : null;
     result.tokens = tokenTotals(observation.requests);
-    Object.assign(result, totalCost(observation.requests, result.pricing));
     result.errors = [...observation.errors, ...(executed.error ? [executed.error] : [])];
 
     // Restore trusted validators AFTER the agent exits; edited fixture tests cannot replace these.
@@ -399,7 +393,7 @@ export async function runBenchmark(options: RunnerOptions): Promise<Results> {
     await readFile(join(dirname(piEntry), "../package.json"), "utf8"),
   ).version;
   const results: Results = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: "running",
     timestamp: new Date().toISOString(),
     metadata: {
@@ -410,15 +404,13 @@ export async function runBenchmark(options: RunnerOptions): Promise<Results> {
       fixtureHash,
       validationHash,
       definitionHash: hash(JSON.stringify(options.definition)),
-      pricingHash: options.pricing ? hash(JSON.stringify(options.pricing)) : null,
-      modelDefinitions: options.models,
+      modelDefinitions: options.models.map(({ cost: _cost, ...model }) => model),
       concurrency: options.concurrency,
       runsPerModel: options.runs,
       workerImplementation: options.workerPath ?? "built-in Pi SDK worker",
       measurement: "provider-reported usage; client-observed wall times; no local token estimates",
     },
     definition: options.definition,
-    pricing: options.pricing,
     plannedRuns: options.runs * options.models.length,
     runs: [],
     aggregates: [],

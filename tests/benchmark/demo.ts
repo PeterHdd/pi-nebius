@@ -19,20 +19,8 @@ const results = await runBenchmark({
   output,
   apiKey: "not-a-real-key",
   workerPath: resolve("tests/benchmark/mock-worker.mjs"),
-  pricing: {
-    schemaVersion: 1,
-    currency: "USD",
-    asOf: "2026-09-16",
-    source: "MOCK DEMO: invented rates, not Nebius prices",
-    models: Object.fromEntries(
-      models.map((model) => [
-        model.id,
-        { inputPerMillion: 1, outputPerMillion: 2, cachedInputPerMillion: 0.25 },
-      ]),
-    ),
-  },
 });
-console.log("MOCK PROVIDER DEMO — real Pi and validators; scripted responses and invented prices.");
+console.log("MOCK PROVIDER DEMO — real Pi and validators; scripted responses.");
 console.log(terminalReport(results));
 console.log(`Results: ${output}/results.json`);
 if (results.runs.some((run) => !run.success)) process.exitCode = 1;

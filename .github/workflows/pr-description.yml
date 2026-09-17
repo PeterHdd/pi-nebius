@@ -1,0 +1,105 @@
+name: PR description
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  workflow_run:
+    workflows: [CI]
+    types: [requested, in_progress, completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+concurrency:
+  group: pr-description-${{ github.event.pull_request.number || github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  describe:
+    if: github.event_name == 'pull_request_target' || github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Metadata only: no checkout, PR scripts, dependency installs, or downloaded artifacts.
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const eventRun = context.payload.workflow_run;
+            let numbers = context.payload.pull_request ? [context.payload.pull_request.number] : [];
+            if (eventRun) {
+              const associated = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+                owner, repo, commit_sha: eventRun.head_sha, per_page: 100,
+              });
+              numbers = associated.map(pr => pr.number);
+            }
+            const start = '<!-- auto-pr:start -->';
+            const end = '<!-- auto-pr:end -->';
+            const plain = value => String(value).replace(/@/g, '@\u200b')
+              .replace(/[<>]/g, '').replace(/[\[\]`*_\\|]/g, '\\$&');
+            for (const number of new Set(numbers)) {
+              const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+              if (pr.state !== 'open' || pr.base.repo.full_name !== `${owner}/${repo}`) continue;
+              // Release Please owns its generated release notes and must not be overwritten.
+              if (pr.head.ref.startsWith('release-please') ||
+                  pr.labels.some(label => label.name.startsWith('autorelease:'))) continue;
+              if (eventRun && eventRun.head_sha !== pr.head.sha) continue;
+              const commits = await github.paginate(github.rest.pulls.listCommits, {
+                owner, repo, pull_number: number, per_page: 100,
+              });
+              const changes = [];
+              for (const commit of commits.filter(commit => commit.parents.length < 2).slice(-50)) {
+                const [subject, ...body] = commit.commit.message.split('\n');
+                changes.push(`- ${plain(subject)} (${commit.sha.slice(0, 7)})`);
+                for (const line of body.filter(line => /^\s*[-*] /.test(line)).slice(0, 15))
+                  changes.push(`  - ${plain(line.replace(/^\s*[-*] /, ''))}`);
+              }
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner, repo, workflow_id: 'ci.yml', event: 'pull_request',
+                head_sha: pr.head.sha, per_page: 100,
+              });
+              const run = data.workflow_runs.filter(run =>
+                run.head_repository?.full_name === pr.head.repo?.full_name
+              ).sort((a, b) => b.id - a.id)[0];
+              const validation = [];
+              if (!run) validation.push('CI is pending for the latest commit.');
+              else {
+                validation.push(`CI: [${plain(run.conclusion ?? run.status)}](${run.html_url}) for ${pr.head.sha.slice(0, 7)}.`);
+                const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+                  owner, repo, run_id: run.id, filter: 'latest', per_page: 100,
+                });
+                for (const job of jobs) {
+                  const outcome = job.conclusion ?? job.status;
+                  validation.push(`- ${plain(job.name)}: **${plain(outcome)}**`);
+                  for (const step of job.steps ?? []) {
+                    if (step.name.startsWith('Run npm '))
+                      validation.push(`  - ${plain(step.name.slice(4))}: ${plain(step.conclusion ?? step.status)}`);
+                  }
+                }
+              }
+              validation.push('', 'These are CI results only. Live Nebius validation and adequacy of test coverage require a separate review.');
+              const generated = [start, '## Changes', '',
+                'Derived from commit messages (latest 50 non-merge commits):', '',
+                ...changes, '', '## Validation', '', ...validation, end].join('\n');
+              // Refresh before writing so a newer push or manually edited notes aren't lost.
+              const { data: current } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+              if (current.head.sha !== pr.head.sha || current.state !== 'open') continue;
+              const body = current.body ?? '';
+              const from = body.indexOf(start);
+              const to = body.indexOf(end, from);
+              if ((from >= 0) !== (to >= 0)) {
+                core.warning(`PR #${number} has incomplete automation markers; leaving it unchanged.`);
+                continue;
+              }
+              const updated = from >= 0
+                ? body.slice(0, from) + generated + body.slice(to + end.length)
+                : [body.trim(), generated].filter(Boolean).join('\n\n');
+              if (updated.length > 60000) {
+                core.warning(`PR #${number} description is too long; leaving it unchanged.`);
+                continue;
+              }
+              if (updated !== body)
+                await github.rest.pulls.update({ owner, repo, pull_number: number, body: updated });
+            }

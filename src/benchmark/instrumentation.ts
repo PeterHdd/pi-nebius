@@ -214,7 +214,13 @@ export class Instrumentation {
               ([delta.content, delta.reasoning_content, delta.reasoning].some(
                 (value) => typeof value === "string" && value.length > 0,
               ) ||
-                (Array.isArray(delta.tool_calls) && delta.tool_calls.length > 0))
+                (Array.isArray(delta.tool_calls) &&
+                  delta.tool_calls.some((call: unknown) => {
+                    if (!isRecord(call) || !isRecord(call.function)) return false;
+                    return [call.function.name, call.function.arguments].some(
+                      (value) => typeof value === "string" && value.length > 0,
+                    );
+                  })))
             )
               trace.firstContentAtMs = this.now();
           }

@@ -47,8 +47,9 @@ export function parseModels(payload: unknown): NebiusModel[] {
           ? ["text", "image"]
           : ["text"],
       contextWindow,
-      // No documented output-token limit or unambiguous price units in the schema.
+      // No documented output-token limit.
       maxTokens: Math.min(4096, Math.max(1, Math.floor(contextWindow / 4))),
+      // Required by Pi's Model type; unused by our benchmark.
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       compat: {
         supportsStore: false,

@@ -158,7 +158,6 @@ export function registerBenchmarkCommand(pi: ExtensionAPI) {
           concurrency: 1,
           output,
           apiKey: key,
-          pricing: null,
           signal: controller.signal,
           piEntry,
           workerPath: fileURLToPath(
@@ -177,11 +176,7 @@ export function registerBenchmarkCommand(pi: ExtensionAPI) {
           },
         })
           .then((results) => {
-            show(
-              redact(
-                `\`\`\`text\n${terminalReport(results)}\n\`\`\`\nDetails: ${join(output, "results.json")}`,
-              ),
-            );
+            show(redact(`${terminalReport(results)}\nDetails: ${join(output, "results.json")}`));
           })
           .catch((error) => {
             show(redact(`Benchmark failed: ${String(error)}`));

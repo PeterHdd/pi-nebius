@@ -5,13 +5,13 @@ a version is released only when its matching Git tag and GitHub release are publ
 
 ## [0.1.0]
 
-Initial release, prepared locally; not yet published.
+Development baseline before automated GitHub releases.
 
 - Native Pi provider with authenticated Nebius model discovery and a private metadata cache.
 - Agentic benchmark CLI with deterministic validation, isolated runs, request/tool traces,
-  cumulative usage, explicit pricing snapshots, and four coding fixtures.
+  cumulative usage and four coding fixtures.
 - Credential-free integration tests using real Pi sessions and mocked provider responses.
-- GitHub CI, dependency updates, secret scanning, workflow validation, and draft releases.
+- GitHub CI, dependency updates, secret scanning, workflow validation, and automated changelogs and GitHub releases.
 - Filesystem checks reject overlapping validator paths and symlinked fixture roots/output aliases.
 
 Live Nebius acceptance remains outstanding. Supported baseline: Pi 0.85.1, Node 22.19+,

@@ -4,15 +4,13 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
-import { loadDefinition, parseDefinition, parsePricing } from "../../src/benchmark/definition.ts";
+import { loadDefinition, parseDefinition } from "../../src/benchmark/definition.ts";
 import { Instrumentation, redactor, reportedUsage } from "../../src/benchmark/instrumentation.ts";
 import {
   aggregate,
   distribution,
   intervalDuration,
-  requestCost,
   tokenTotals,
-  totalCost,
 } from "../../src/benchmark/metrics.ts";
 import { runCommand } from "../../src/benchmark/process.ts";
 import { classifyFailure } from "../../src/benchmark/runner.ts";
@@ -64,26 +62,6 @@ test("definition parsing accepts YAML/JSON, rejects typos, aliases and invalid c
   assert.throws(() => parseDefinition(`${definition}name: duplicate`));
 });
 
-test("pricing requires explicit units, source, date and finite nonnegative rates", () => {
-  const pricing = {
-    schemaVersion: 1,
-    currency: "USD",
-    asOf: "2026-09-16",
-    source: "test-only",
-    models: {
-      "test/model": { inputPerMillion: 1, outputPerMillion: 2, cachedInputPerMillion: 0.25 },
-    },
-  };
-  assert.deepEqual(parsePricing(JSON.stringify(pricing)), pricing);
-  for (const value of [-1, "1", null]) {
-    const invalid = structuredClone(pricing) as Record<string, unknown>;
-    invalid.models = { x: { inputPerMillion: value, outputPerMillion: 1 } };
-    assert.throws(() => parsePricing(JSON.stringify(invalid)));
-  }
-  assert.throws(() => parsePricing(JSON.stringify({ ...pricing, currency: "EUR" })));
-  assert.throws(() => parsePricing(JSON.stringify({ ...pricing, asOf: "yesterday" })));
-});
-
 test("definition rejects aliased and nested validation directories", async () => {
   const root = await mkdtemp(join(tmpdir(), "bench-paths-"));
   try {
@@ -120,23 +98,6 @@ test("cumulative usage sums every request, never substitutes the final prompt", 
   assert.equal(incomplete.usageComplete, false);
 });
 
-test("cost separates cached input and includes reasoning only once", () => {
-  const trace = request(1_000_000, 500_000, 200_000);
-  assert.ok(trace.usage);
-  trace.usage.reasoningTokens = 100_000;
-  const rates = { inputPerMillion: 2, outputPerMillion: 4, cachedInputPerMillion: 0.5 };
-  assert.equal(requestCost(trace, rates), 3.7);
-  assert.equal(requestCost(trace, null), null);
-  trace.usage.cachedInputTokens = null;
-  assert.equal(requestCost(trace, rates), null);
-  assert.equal(requestCost(trace, { inputPerMillion: 2, outputPerMillion: 4 }), 4);
-  assert.equal(
-    totalCost([trace, { ...trace, usage: null }], { inputPerMillion: 2, outputPerMillion: 4 })
-      .estimatedCostUsd,
-    null,
-  );
-});
-
 test("repeated-run summaries retain variance, failures, and unknown counts", () => {
   assert.deepEqual(distribution([2, null, 4]), {
     count: 2,
@@ -150,7 +111,6 @@ test("repeated-run summaries retain variance, failures, and unknown counts", () 
   const runs = [true, false, true].map((success, i) => ({
     model: "mock/model",
     success,
-    estimatedCostUsd: i === 1 ? null : i + 1,
     wallTimeMs: 10 + i,
     tokens: { cumulativeInputTokens: 100 + i, cumulativeOutputTokens: 10 },
     agentTurns: 2,
@@ -158,8 +118,6 @@ test("repeated-run summaries retain variance, failures, and unknown counts", () 
   })) as RunResult[];
   const [summary] = aggregate(runs);
   assert.equal(summary?.successRate, 2 / 3);
-  assert.equal(summary?.costUsd.median, 2);
-  assert.equal(summary?.costUsd.missing, 1);
   assert.equal(summary?.inputTokens.mean, 101);
   assert.equal(
     intervalDuration([

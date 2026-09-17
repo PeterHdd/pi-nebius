@@ -2,7 +2,7 @@
 
 Nebius Token Factory models in Pi's normal model picker, discovered using your API key.
 
-This package also includes **benchmarks inside Pi**: run `/nebius-benchmark` to enter your own task prompt and compare models on copies of your current project. Results appear in Pi. A standalone CLI also supports scripted tasks, deterministic validation, and custom pricing. See [Benchmarking](docs/benchmarking.md) for the CLI, result schema, metrics, and four ready-to-run fixtures.
+This package also includes **benchmarks inside Pi**: run `/nebius-benchmark` to enter your own task prompt and compare models on copies of your current project. Results appear in Pi. A standalone CLI also supports scripted tasks and deterministic validation. See [Benchmarking](docs/benchmarking.md) for the CLI, result schema, metrics, and four ready-to-run fixtures.
 
 ```bash
 npm ci
@@ -12,9 +12,9 @@ npm run benchmark -- --benchmark benchmarks/fix-auth-bug \
   --output benchmark-results/auth-comparison
 ```
 
-Results appear directly in the terminal: each run prints its pass/fail status, followed by a per-model table of success counts, median cost/time, and mean cumulative input/output tokens, turns, and tool calls. Detailed JSON reports, traces, and workspaces are also saved under `benchmark-results/`; `--output` chooses the directory.
+Results appear directly in the terminal: each run prints its pass/fail status, followed by a comparison table of success counts, mean input/output tokens, median task duration, observed time to first token (TTFT), end-to-end output throughput, turns, and tool calls. Detailed JSON reports, traces, and workspaces are also saved under `benchmark-results/`; `--output` chooses the directory.
 
-Set `NEBIUS_API_KEY` first. Supply `--pricing your-pricing.yaml` for monetary estimates. Without a pricing snapshot costs are unknown, not zero. `npm run benchmark:demo` exercises the real Pi runner with scripted model responses, without credentials.
+Set `NEBIUS_API_KEY` first. `npm run benchmark:demo` exercises the real Pi runner with scripted model responses, without credentials.
 
 ```text
 Pi → pi-nebius → https://api.tokenfactory.nebius.com/v1 → model
@@ -58,7 +58,7 @@ pi install git:github.com/PeterHdd/pi-nebius@v0.1.0
 
 This command requires the `v0.1.0` tag to be published first. Git installs require no compiler or development dependencies. Benchmark development uses a separate source checkout with development dependencies installed. Pin a tag for reproducibility; install a newer tag explicitly to upgrade.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [release instructions](docs/releasing.md), [CHANGELOG.md](CHANGELOG.md), and [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md), and [SECURITY.md](SECURITY.md).
 
 ## Authentication and usage
 
@@ -94,7 +94,7 @@ An editor asks for your own task prompt. The benchmark uses your selected Nebius
 /nebius-benchmark --models zai-org/GLM-5.3,moonshotai/Kimi-K2.6 --runs 3
 ```
 
-This runs the same prompt three times per model, sequentially, starting from the same project snapshot each time. It shows progress and a comparison of tokens, time, turns, and tools directly in Pi. Custom prompts report **correctness not checked**; completion does not prove the task was solved. Cost is unknown without a pricing snapshot (the standalone CLI supports `--pricing`).
+This runs the same prompt three times per model, sequentially, starting from the same project snapshot each time. It shows progress and a comparison of input/output tokens, task duration, observed TTFT, output throughput, turns, and tools directly in Pi. Custom prompts report **correctness not checked**; completion does not prove the task was solved.
 
 The snapshot includes current working files, including uncommitted changes, and respects Git ignores. It excludes `.git`, `.pi`, dependency/build folders, prior benchmark results, `.env` files, and `.pem`/`.key` files. Dependencies are not preinstalled; include setup instructions in your task if needed. Links and special files are rejected. Snapshots are limited to 10,000 files / 50 MiB. Run Pi from the project directory you want to benchmark.
 
@@ -127,7 +127,6 @@ The async extension factory calls authenticated `GET /v1/models?verbose=true` be
 | `supported_sampling_parameters` contains `reasoning_effort` | Enables reasoning and Pi's standard reasoning-effort control |
 | `supported_features` contains `reasoning` | Marks reasoning support without assuming an effort control |
 | No documented maximum output length | `maxTokens`: 4,096, capped at a quarter of the context window |
-| `pricing`, `per_request_limits` | Not guessed; see limitations below |
 
 Basic responses containing only IDs are supported. Missing capabilities default to text-only with no explicit reasoning control. Without modality metadata, the endpoint may include models unsuitable for chat; discovery cannot prove tool support. Pick a tool-capable model and run the integration test. Duplicate IDs are deduplicated; malformed lists are rejected rather than silently replacing a good cache with partial data.
 
@@ -150,7 +149,6 @@ Merge the `nebius` provider entry from [examples/models.json](examples/models.js
 
 Use `modelOverrides` to adjust discovered models and `models` to add explicit models that remain available when discovery is offline. Native providers are composed beneath these settings by Pi. No `apiKey` field is needed in this configuration. Explicitly configured models remain until you remove them, even if the server no longer lists them.
 
-Pi cost fields are **USD per million tokens**. Discovered models use zero cost fields because the current Nebius schema does not state price units unambiguously. **A zero cost estimate does not mean free inference.** Configure verified prices through `modelOverrides` for useful cost estimates; token counts still come from response usage.
 
 For reasoning models, verify the model's Nebius-specific behavior before overriding `reasoning`, `thinkingLevelMap`, or `compat`. Pi supports model-specific template controls, but this extension does not guess them from model names. Always-on reasoning may still appear in Pi even when explicit effort selection is unavailable.
 
@@ -162,7 +160,6 @@ For reasoning models, verify the model's Nebius-specific behavior before overrid
 
 Compatibility settings select `system` messages and `max_tokens`, request streamed usage, and disable unsupported assumptions about `store`, strict tools, grammar tools, and reasoning effort. These are model-level properties and can be overridden through Pi.
 
-See [docs/research.md](docs/research.md) for inspected APIs, official sources, and implementation tradeoffs.
 
 ## Testing
 
@@ -211,7 +208,7 @@ This makes paid inference requests and has a three-minute timeout. It is not par
 
 - Live Nebius inference has not been verified in the development environment because no API key was available. Mocked Pi integration tests prove adapter wiring and the tool loop, not every hosted model's capabilities.
 - Metadata availability and capability vocabulary vary. Reasoning/vision detection is conservative; model-specific thinking templates require explicit configuration and testing.
-- Cost estimates default to zero until configured. Maximum output limits are defaults; the verbose schema does not expose a documented equivalent of Pi's `maxTokens`.
+- Maximum output limits are defaults; the verbose schema does not expose a documented equivalent of Pi's `maxTokens`.
 - Pi's adapter handles `stop`, `length`, and `tool_calls` finish reasons. Its generic stream options do not expose custom stop sequences; advanced extensions can use Pi's `onPayload` hook if needed. No new stop-sequence API is invented here.
 - The normal picker/listing integration is tested through Pi's CLI and registry. An interactive terminal screenshot/UI test was not performed.
 

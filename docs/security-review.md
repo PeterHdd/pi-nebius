@@ -13,7 +13,7 @@ engineering review is not an independent penetration test or audit certification
 | Output parent symlinks could bypass lexical containment checks | Resolve existing ancestors before creating directories | Test for fixture alias with nonexistent output descendants |
 | Fixture root could itself be a symlink | Require a real directory at the copy/hash root | Root-link regression test |
 | `.env` variants and common key files were not ignored | Ignore `.env.*`, `*.pem`, `*.key`, logs and OS metadata | Git-visible source inspection |
-| No repository CI/release controls | SHA-pinned read-only CI, dependency updates, security scans, version/tag gate, draft releases | Local workflow/version validation |
+| No repository CI/release controls | SHA-pinned read-only CI, dependency updates, security scans, version consistency, release PRs and automated releases | Local workflow/version validation |
 | Accidental npm publication was possible | `private: true`, enforced by version checker; no publish workflow | Package metadata check |
 
 These path fixes protect against static aliases/configuration mistakes, not a malicious
@@ -46,4 +46,4 @@ Scanners only cover known patterns/advisories; clean output is not proof of secu
 No live Nebius acceptance was possible without credentials. GitHub Actions have not run
 on GitHub; the configured OS/Node matrix is not claimed as remotely verified. No repository,
 commit, tag, release or npm publication was created. Branch/tag rules, push protection and
-private reporting must be enabled after repository creation; see [releasing.md](releasing.md).
+private reporting must be enabled after repository creation.
