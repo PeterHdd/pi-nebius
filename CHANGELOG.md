@@ -3,6 +3,14 @@
 Versions use Semantic Versioning. Entries describe changes included in the named version;
 a version is released only when its matching Git tag and GitHub release are published.
 
+## [0.3.2](https://github.com/PeterHdd/pi-nebius/compare/v0.3.1...v0.3.2) (2026-09-17)
+
+
+### Bug Fixes
+
+* launch benchmark workers from installed packages ([f7e717a](https://github.com/PeterHdd/pi-nebius/commit/f7e717a3454ae700451e63f54d78bda1d155d1dd))
+* launch benchmark workers from installed packages ([cf516f7](https://github.com/PeterHdd/pi-nebius/commit/cf516f724d0d85ce921e4b0a6347bdcb6b251493))
+
 ## [0.3.1](https://github.com/PeterHdd/pi-nebius/compare/v0.3.0...v0.3.1) (2026-09-17)
 
 
