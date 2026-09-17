@@ -2,8 +2,11 @@ schemaVersion: 1
 name: fix-auth-bug
 task: |
   Fix refresh-token expiry handling in auth.mjs. A token is valid strictly before
-  its expiresAt timestamp (Unix seconds); nowMs is in milliseconds. Reject revoked
-  tokens, missing tokens, and non-finite timestamps. Do not change the tests.
+  its expiresAt timestamp (Unix seconds); nowMs is in milliseconds. Both expiresAt
+  and nowMs must be finite numbers: reject NaN, Infinity, -Infinity, missing values,
+  and strings without coercing them to numbers. Reject revoked and missing tokens.
+  Run the existing tests and ensure both timestamp inputs meet these requirements.
+  Do not change the tests.
 validation:
   - command: node
     args: [--test, "{validation}/check.test.mjs"]
