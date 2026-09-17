@@ -1,12 +1,13 @@
-## Change
+<!-- auto-pr:start -->
+## Changes
 
-Describe the problem and resulting behavior.
+Commit summaries will be added automatically.
 
 ## Validation
 
-- [ ] `npm run check` and `npm run version:check` pass.
-- [ ] Relevant regression tests cover the change.
-- [ ] No API keys, private fixtures, or benchmark outputs are included.
-- [ ] Documentation/changelog updated where relevant.
+CI results will be added automatically for the latest commit.
+<!-- auto-pr:end -->
 
-State whether provider responses were mocked or tested against live Nebius.
+## Notes
+
+<!-- Optional: explain context, limitations, or live testing here. Automation preserves everything outside its markers. -->

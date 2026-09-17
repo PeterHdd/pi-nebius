@@ -29,7 +29,7 @@ There is no dedicated security mailbox or response-time guarantee yet.
 
 ## Repository controls
 
-CI uses read-only tokens and SHA-pinned Actions, no live credentials, and ordinary
+Test/security CI uses read-only tokens and SHA-pinned Actions, no live credentials, and ordinary
 `pull_request` triggers. After successful main-branch CI, Release Please updates a
 release PR or publishes the merged release. Its dedicated repository-scoped token
 is confined to the release workflow, which checks out no code and executes no
@@ -41,3 +41,7 @@ and validates workflows. It downloads executable tools from GitHub. `npm audit` 
 known dependency advisories separately. Neither scan proves the absence of vulnerabilities.
 
 See [the review record](docs/security-review.md) for findings and residual limitations.
+
+The PR-description workflow uses `pull_request_target` and `workflow_run` only to
+read GitHub metadata and update the PR body with a scoped write token. It never
+checks out PR code, installs dependencies, or consumes workflow artifacts.

@@ -28,3 +28,12 @@ credential committed and later deleted must still be revoked and removed from hi
 Release Please generates changelog/version updates in a release PR; merging it publishes
 the GitHub release after CI passes. Changes to workflow permissions,
 tool checksum pins, dependency lockfiles, and authentication deserve particular review.
+
+PR descriptions are maintained by the **PR description** workflow. Write meaningful
+commit subjects and optional bullet points in commit bodies: these populate Changes.
+Validation reports actual CI job/step outcomes for the latest PR commit and updates
+when CI runs. Add context or live-testing evidence under Notes, outside the
+`auto-pr` markers. The workflow preserves that text and leaves Release Please PRs
+alone. It uses the built-in GitHub token; no additional secret or AI service is needed.
+It becomes active after the workflow reaches the default branch. For existing PRs
+without markers, it appends its generated section without deleting your description.
