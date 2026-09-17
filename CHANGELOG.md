@@ -3,6 +3,14 @@
 Versions use Semantic Versioning. Entries describe changes included in the named version;
 a version is released only when its matching Git tag and GitHub release are published.
 
+## [0.2.1](https://github.com/PeterHdd/pi-nebius/compare/v0.2.0...v0.2.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* clarify auth benchmark requirements and expand visible test ([557271b](https://github.com/PeterHdd/pi-nebius/commit/557271b74b30e457cdeca7b3e3d491e84903eca4))
+* clarify auth benchmark requirements and expand visible test ([3d86156](https://github.com/PeterHdd/pi-nebius/commit/3d86156f41677cdd2672fe6b5196e44d2830b5c6))
+
 ## [0.2.0](https://github.com/PeterHdd/pi-nebius/compare/v0.1.0...v0.2.0) (2026-09-17)
 
 
