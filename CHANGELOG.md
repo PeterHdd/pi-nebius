@@ -3,6 +3,14 @@
 Versions use Semantic Versioning. Entries describe changes included in the named version;
 a version is released only when its matching Git tag and GitHub release are published.
 
+## [0.3.1](https://github.com/PeterHdd/pi-nebius/compare/v0.3.0...v0.3.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* enable automated npm publishing and simplify user documentation ([a90b4a4](https://github.com/PeterHdd/pi-nebius/commit/a90b4a40ce7d5bdc8bf8bddb7dc4777c4c68a269))
+* enable automated npm publishing and simplify user documentation ([81b6348](https://github.com/PeterHdd/pi-nebius/commit/81b6348f9710d786ff6f8ae18b56716e8c594e73))
+
 ## [0.3.0](https://github.com/PeterHdd/pi-nebius/compare/v0.2.1...v0.3.0) (2026-09-17)
 
 
