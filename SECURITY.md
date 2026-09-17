@@ -45,3 +45,11 @@ See [the review record](docs/security-review.md) for findings and residual limit
 The PR-description workflow uses `pull_request_target` and `workflow_run` only to
 read GitHub metadata and update the PR body with a scoped write token. It never
 checks out PR code, installs dependencies, or consumes workflow artifacts.
+
+
+npm publishing runs only for stable, published GitHub releases in this repository.
+The publishing workflow checks that the tagged commit belongs to `main`, verifies
+that the tag matches the package version, and runs tests and package checks before
+publishing. It uses npm trusted publishing with GitHub OIDC (`id-token: write`),
+not a stored npm token, and attaches provenance. Release Please's separate token
+is not passed to the npm publishing job.

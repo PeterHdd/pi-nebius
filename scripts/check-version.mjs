@@ -7,7 +7,7 @@ const releaseManifest = JSON.parse(await readFile(".release-please-manifest.json
 assert.equal(releaseManifest["."], manifest.version, "Update the release manifest version");
 const changelog = await readFile("CHANGELOG.md", "utf8");
 assert.match(manifest.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
-assert.equal(manifest.private, true, "GitHub-only distribution must remain private to npm");
+assert.notEqual(manifest.private, true, "npm distribution must not be marked private");
 assert.equal(lock.version, manifest.version, "Update the lockfile version");
 assert.equal(lock.packages[""].version, manifest.version, "Update the root lockfile version");
 assert.ok(changelog.includes(`## [${manifest.version}]`), "Add this version to CHANGELOG.md");
