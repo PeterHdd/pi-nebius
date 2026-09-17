@@ -16,6 +16,8 @@ try {
   const names = pack.files.map((file) => file.path);
   for (const required of [
     "src/index.ts",
+    "src/benchmark/host-worker.mjs",
+    "dist/benchmark/host-worker.mjs",
     "dist/benchmark/cli.js",
     "dist/benchmark/worker.js",
     "README.md",

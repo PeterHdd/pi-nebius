@@ -8,7 +8,8 @@ import { join } from "node:path";
 import { DefaultResourceLoader } from "@earendil-works/pi-coding-agent";
 
 // Reproduce Pi's Git install in a clean directory, without build output or dev tools.
-const scratch = await mkdtemp(join(tmpdir(), "pi-nebius-install-"));
+const temporaryRoot = await mkdtemp(join(tmpdir(), "pi-nebius-install-"));
+const scratch = join(temporaryRoot, "node_modules", "pi-nebius");
 const oldKey = process.env.NEBIUS_API_KEY;
 const oldDir = process.env.PI_CODING_AGENT_DIR;
 const oldFetch = globalThis.fetch;
@@ -25,6 +26,7 @@ const server = createServer((_req, res) => {
   );
 });
 try {
+  await mkdir(scratch, { recursive: true });
   for (const path of [
     "package.json",
     "package-lock.json",
@@ -206,5 +208,5 @@ try {
   else process.env.NEBIUS_API_KEY = oldKey;
   if (oldDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
   else process.env.PI_CODING_AGENT_DIR = oldDir;
-  await rm(scratch, { recursive: true, force: true });
+  await rm(temporaryRoot, { recursive: true, force: true });
 }

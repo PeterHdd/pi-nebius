@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 import { MISSING_KEY } from "../discovery.ts";
 import { applyModelSettings, type ModelSettingsMap } from "../model-settings.ts";
 import type { NebiusModel } from "../models.ts";
@@ -42,6 +43,20 @@ export function registerBenchmarkCommand(
   pi: ExtensionAPI,
   getSettings: () => ModelSettingsMap = () => ({}),
 ) {
+  pi.registerMessageRenderer("nebius-benchmark", (message, options, theme) => {
+    const content =
+      typeof message.content === "string"
+        ? message.content
+        : message.content
+            .filter((part) => part.type === "text")
+            .map((part) => part.text)
+            .join("\n");
+    return new Text(
+      `${theme.fg("customMessageLabel", "[nebius-benchmark]")}\n\n${content}`,
+      options.outputPad ?? 1,
+      0,
+    );
+  });
   let starting = false;
   let active: { controller: AbortController; done: Promise<void> } | undefined;
   const show = (content: string) =>
@@ -168,12 +183,7 @@ export function registerBenchmarkCommand(
           apiKey: key,
           signal: controller.signal,
           piEntry,
-          workerPath: fileURLToPath(
-            new URL(
-              import.meta.url.endsWith(".ts") ? "./host-worker.ts" : "./host-worker.js",
-              import.meta.url,
-            ),
-          ),
+          workerPath: fileURLToPath(new URL("./host-worker.mjs", import.meta.url)),
           workerArgs: [piEntry],
           onRun: (run) => {
             ctx.ui.setStatus("nebius-benchmark", `Benchmark: ${task} (${++completed}/${total})`);

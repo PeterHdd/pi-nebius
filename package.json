@@ -42,13 +42,15 @@
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
     "@earendil-works/pi-ai": "0.85.1",
     "@earendil-works/pi-coding-agent": "0.85.1",
+    "@earendil-works/pi-tui": "0.85.1",
     "@types/node": "^22.0.0",
-    "@biomejs/biome": "^2.2.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0"
   },
