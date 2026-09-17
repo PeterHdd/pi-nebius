@@ -3,6 +3,14 @@
 Versions use Semantic Versioning. Entries describe changes included in the named version;
 a version is released only when its matching Git tag and GitHub release are published.
 
+## [0.3.0](https://github.com/PeterHdd/pi-nebius/compare/v0.2.1...v0.3.0) (2026-09-17)
+
+
+### Features
+
+* add persistent per-model Nebius settings ([d1b3114](https://github.com/PeterHdd/pi-nebius/commit/d1b31146abf17d54aa43d57f5c9080072cea78e6))
+* add persistent per-model Nebius settings ([b31dce1](https://github.com/PeterHdd/pi-nebius/commit/b31dce1087e41e41482a56634f3dc5f57213bae4))
+
 ## [0.2.1](https://github.com/PeterHdd/pi-nebius/compare/v0.2.0...v0.2.1) (2026-09-17)
 
 
