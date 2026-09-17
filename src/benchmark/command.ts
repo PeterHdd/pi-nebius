@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { MISSING_KEY } from "../discovery.ts";
+import { applyModelSettings, type ModelSettingsMap } from "../model-settings.ts";
 import type { NebiusModel } from "../models.ts";
 import { loadDefinition, positive } from "./definition.ts";
 import { redactor } from "./instrumentation.ts";
@@ -37,7 +38,10 @@ export async function hostPiEntry(): Promise<string> {
   return join(dirname(manifestPath), manifest.main);
 }
 
-export function registerBenchmarkCommand(pi: ExtensionAPI) {
+export function registerBenchmarkCommand(
+  pi: ExtensionAPI,
+  getSettings: () => ModelSettingsMap = () => ({}),
+) {
   let starting = false;
   let active: { controller: AbortController; done: Promise<void> } | undefined;
   const show = (content: string) =>
@@ -140,7 +144,10 @@ export function registerBenchmarkCommand(pi: ExtensionAPI) {
           );
         }
         // Snapshot selection; changing the interactive model does not change an active run.
-        const models = structuredClone(selected) as NebiusModel[];
+        const modelSettings = structuredClone(getSettings());
+        const models = (structuredClone(selected) as NebiusModel[]).map((model) =>
+          applyModelSettings(model, modelSettings[model.id]),
+        );
         let completed = 0;
         const output = join(ctx.cwd, "benchmark-results", `${task}-${randomUUID()}`);
         const controller = new AbortController();
@@ -154,6 +161,7 @@ export function registerBenchmarkCommand(pi: ExtensionAPI) {
           definition,
           directory,
           models,
+          modelSettings,
           runs,
           concurrency: 1,
           output,

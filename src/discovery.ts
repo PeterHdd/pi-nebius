@@ -78,9 +78,7 @@ async function writeCache(path: string, models: NebiusModel[], checkedAt: number
             modality: model.input.includes("image") ? "text+image->text" : "text->text",
           },
           supported_features: model.reasoning ? ["reasoning"] : [],
-          supported_sampling_parameters: model.compat?.supportsReasoningEffort
-            ? ["reasoning_effort"]
-            : [],
+          supported_sampling_parameters: model.nebiusSupportedParameters ?? [],
         })),
       }),
       { mode: 0o600, flag: "wx" },

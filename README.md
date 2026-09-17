@@ -143,6 +143,28 @@ The cache is under `getAgentDir()/cache/pi-nebius/` (normally `~/.pi/agent/cache
 
 Pi now has a shared native model store, but its general provider-level cache is not scoped by the discovery key. This small extension-owned cache makes key isolation explicit and guarantees discovery before model selection. It does not participate in Pi's general remote-catalog refresh; use `/nebius-refresh` or restart Pi.
 
+### Per-model settings
+
+Run `/nebius-model` to choose a discovered model, or `/nebius-model MODEL_ID` to open it directly.
+The menu saves temperature, reasoning effort, and maximum output tokens separately for each model.
+Blank numeric values or **Inherit** restore defaults; **Reset all overrides** clears that model's settings.
+Advanced settings let you override the context window and reasoning capability metadata. These do not
+change the server's capabilities. Use verified limits; the default output limit remains 4,096 tokens
+when the catalog does not provide a documented output limit.
+
+Temperature and reasoning-effort overrides are sent only when discovery advertises support.
+An advertised parameter does not guarantee every value is supported by every model; use its documented values.
+Saved request values take precedence over Pi's generated values (including `/thinking` for reasoning effort).
+Changes apply to new requests immediately and survive restarts in
+`~/.pi/agent/pi-nebius/model-settings.json` (respecting `PI_CODING_AGENT_DIR`).
+`/nebius-refresh` preserves saved overrides. External file edits require `/reload`.
+
+Both benchmark entry points use saved settings. In-Pi benchmarks snapshot them when the run starts,
+so changing the menu does not change an active comparison. Each run's `effectiveSettings` includes
+saved overrides, model limits, and `requestParameters`: the outgoing temperature, reasoning effort,
+output limit, and top-p where present, without prompt content. Omitted values mean the request did not
+specify them; server defaults are unknown. These parameters are in `results.json`, not the summary table.
+
 ### Metadata overrides and user-defined fallback models
 
 Merge the `nebius` provider entry from [examples/models.json](examples/models.json) into `~/.pi/agent/models.json`, replacing the placeholder ID and limits with verified values. Do not overwrite unrelated providers. The extension must remain installed.

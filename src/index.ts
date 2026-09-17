@@ -1,10 +1,42 @@
 import { type ExtensionAPI, getAgentDir } from "@earendil-works/pi-coding-agent";
 import { registerBenchmarkCommand } from "./benchmark/command.ts";
 import { discoverModels, MISSING_KEY } from "./discovery.ts";
+import {
+  applyModelSettings,
+  loadSettings,
+  type ModelSettingsMap,
+  settingsPath,
+} from "./model-settings.ts";
+import { registerModelSettingsCommand } from "./model-settings-command.ts";
+import type { NebiusModel } from "./models.ts";
 import { nebiusProvider } from "./provider.ts";
 
 export default async function nebius(pi: ExtensionAPI) {
-  registerBenchmarkCommand(pi);
+  const path = settingsPath(getAgentDir());
+  let settings: ModelSettingsMap = {};
+  try {
+    settings = await loadSettings(path);
+  } catch (error) {
+    process.stderr.write(`Nebius settings were not loaded: ${String(error)}\n`);
+  }
+  let catalog: NebiusModel[] = [];
+  const register = () =>
+    pi.registerProvider(
+      nebiusProvider(
+        catalog.map((model) => applyModelSettings(model, settings[model.id])),
+        settings,
+      ),
+    );
+  registerBenchmarkCommand(pi, () => settings);
+  registerModelSettingsCommand(pi, {
+    path,
+    models: () => catalog,
+    settings: () => settings,
+    update: (updated) => {
+      settings = updated;
+      register();
+    },
+  });
   let pending: Promise<Awaited<ReturnType<typeof discoverModels>>> | undefined;
   const initialize = (force = false) => {
     pending ??= discoverModels({
@@ -13,7 +45,8 @@ export default async function nebius(pi: ExtensionAPI) {
       force,
     })
       .then((result) => {
-        pi.registerProvider(nebiusProvider(result.models));
+        catalog = result.models;
+        register();
         return result;
       })
       .finally(() => {

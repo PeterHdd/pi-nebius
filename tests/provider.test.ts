@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { createModels } from "@earendil-works/pi-ai";
 import { DefaultResourceLoader } from "@earendil-works/pi-coding-agent";
 import nebius from "../src/index.ts";
+import { saveModelSettings, settingsPath } from "../src/model-settings.ts";
 import { parseModels } from "../src/models.ts";
 import { nebiusProvider } from "../src/provider.ts";
 
@@ -33,9 +34,13 @@ test("Pi's actual extension loader awaits discovery and registers provider and r
   process.env.NEBIUS_API_KEY = "fake-key";
   process.env.PI_CODING_AGENT_DIR = dir;
   t.mock.method(globalThis, "fetch", async () =>
-    Response.json({ object: "list", data: [{ id: "test/model" }] }),
+    Response.json({
+      object: "list",
+      data: [{ id: "test/model", supported_sampling_parameters: ["temperature"] }],
+    }),
   );
   try {
+    await saveModelSettings(settingsPath(dir), "test/model", { maxTokens: 8000, temperature: 0.5 });
     const loader = new DefaultResourceLoader({
       cwd: dir,
       agentDir: dir,
@@ -50,7 +55,12 @@ test("Pi's actual extension loader awaits discovery and registers provider and r
     assert.deepEqual(result.errors, []);
     assert.equal(result.extensions.length, 1);
     assert.ok(result.extensions[0]?.commands.has("nebius-refresh"));
+    assert.ok(result.extensions[0]?.commands.has("nebius-model"));
     assert.equal(result.runtime.pendingNativeProviderRegistrations.length, 1);
+    assert.equal(
+      result.runtime.pendingNativeProviderRegistrations[0]?.provider.getModels()[0]?.maxTokens,
+      8000,
+    );
     assert.equal(
       result.runtime.pendingNativeProviderRegistrations[0]?.provider.getModels()[0]?.id,
       "test/model",
