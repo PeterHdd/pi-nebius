@@ -1,3 +1,4 @@
+import type { ModelSettings } from "../model-settings.ts";
 import type { NebiusModel } from "../models.ts";
 
 export interface Command {
@@ -84,12 +85,14 @@ export type Failure =
   | "unknown";
 
 export interface WorkerInput {
+  modelSettings?: ModelSettings;
   definition: BenchmarkDefinition;
   model: NebiusModel;
   agentDir: string;
   apiKey: string;
 }
 export type WorkerMessage =
+  | { type: "settings"; effectiveSettings: Record<string, unknown> }
   | { type: "observation"; observation: Observation }
   | { type: "done"; error: string | null; effectiveSettings: Record<string, unknown> };
 

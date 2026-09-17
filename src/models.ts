@@ -1,7 +1,7 @@
 import type { Model } from "@earendil-works/pi-ai";
 
 export const BASE_URL = "https://api.tokenfactory.nebius.com/v1";
-export type NebiusModel = Model<"openai-completions">;
+export type NebiusModel = Model<"openai-completions"> & { nebiusSupportedParameters?: string[] };
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -46,6 +46,9 @@ export function parseModels(payload: unknown): NebiusModel[] {
         typeof modality === "string" && modality.split("->")[0]?.includes("image")
           ? ["text", "image"]
           : ["text"],
+      nebiusSupportedParameters: parameters.filter(
+        (value): value is string => typeof value === "string",
+      ),
       contextWindow,
       // No documented output-token limit.
       maxTokens: Math.min(4096, Math.max(1, Math.floor(contextWindow / 4))),

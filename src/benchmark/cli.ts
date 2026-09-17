@@ -4,7 +4,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { discoverModels, MISSING_KEY } from "../discovery.ts";
+import { applyModelSettings, loadSettings, settingsPath } from "../model-settings.ts";
 import { loadDefinition, positive } from "./definition.ts";
 import { redactor } from "./instrumentation.ts";
 import { terminalReport } from "./report.ts";
@@ -67,13 +69,14 @@ async function main() {
     rm(cache, { recursive: true, force: true }),
   );
   if (discovered.warning) process.stderr.write(`${discovered.warning}\n`);
+  const modelSettings = await loadSettings(settingsPath(getAgentDir()));
   const models = ids.map((id) => {
     const model = discovered.models.find((candidate) => candidate.id === id);
     if (!model)
       throw new Error(
         `Requested model was not discovered: ${id}. Check its exact ID and your access.`,
       );
-    return model;
+    return applyModelSettings(model, modelSettings[id]);
   });
   const output = resolve(
     values.output ??
@@ -91,6 +94,7 @@ async function main() {
       definition,
       directory,
       models,
+      modelSettings,
       runs,
       concurrency,
       output,

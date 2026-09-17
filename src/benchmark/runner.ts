@@ -5,6 +5,7 @@ import { mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promis
 import { arch, platform, release } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { ModelSettingsMap } from "../model-settings.ts";
 import type { NebiusModel } from "../models.ts";
 import { emptyObservation, hash, redactor } from "./instrumentation.ts";
 import { aggregate, intervalDuration, tokenTotals } from "./metrics.ts";
@@ -25,6 +26,7 @@ export interface RunnerOptions {
   definition: BenchmarkDefinition;
   directory: string;
   models: NebiusModel[];
+  modelSettings?: ModelSettingsMap;
   runs: number;
   concurrency: number;
   output: string;
@@ -124,6 +126,8 @@ async function executeAgent(
           error = `Trace persistence failed: ${caught}`;
           stop();
         }
+      } else if (message.type === "settings") {
+        effectiveSettings = message.effectiveSettings;
       } else if (message.type === "done") {
         done = true;
         error ??= message.error;
@@ -251,7 +255,13 @@ async function executeRun(
         throw new Error(`Benchmark setup failed: ${setup.output}`);
     }
     const executed = await executeAgent(
-      { definition: options.definition, model, agentDir, apiKey: options.apiKey },
+      {
+        definition: options.definition,
+        model,
+        agentDir,
+        apiKey: options.apiKey,
+        modelSettings: options.modelSettings?.[model.id],
+      },
       workspace,
       join(directory, "trace.jsonl"),
       options.signal,

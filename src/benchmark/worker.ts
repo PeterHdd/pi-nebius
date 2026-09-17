@@ -6,6 +6,7 @@ import {
   SessionManager,
   SettingsManager,
 } from "@earendil-works/pi-coding-agent";
+import { requestSettings } from "../model-settings.ts";
 import { nebiusProvider } from "../provider.ts";
 import { Instrumentation, redactor } from "./instrumentation.ts";
 import type { WorkerInput, WorkerMessage } from "./types.ts";
@@ -25,7 +26,11 @@ async function run(input: WorkerInput) {
   let cancelled = false;
   let error: string | null = null;
   const settings = SettingsManager.inMemory();
+  const requests: Record<string, unknown>[] = [];
   const effectiveSettings: Record<string, unknown> = {
+    modelOverrides: input.modelSettings ?? {},
+    modelLimits: { contextWindow: input.model.contextWindow, maxTokens: input.model.maxTokens },
+    requestParameters: requests,
     configuration: settings.getGlobalSettings(),
     tools: input.definition.tools,
     compaction: settings.getCompactionSettings(),
@@ -45,7 +50,14 @@ async function run(input: WorkerInput) {
   });
   process.on("SIGTERM", abort);
   try {
-    const base = nebiusProvider([input.model]);
+    const base = nebiusProvider(
+      [input.model],
+      { [input.model.id]: input.modelSettings ?? {} },
+      (payload) => {
+        requests.push(requestSettings(payload));
+        send({ type: "settings", effectiveSettings });
+      },
+    );
     const baseStreams: ProviderStreams = base;
     const provider = {
       ...base,
@@ -109,6 +121,7 @@ async function run(input: WorkerInput) {
     }));
     session.subscribe((event) => observer.onEvent(event));
     effectiveSettings.effectiveThinkingLevel = session.thinkingLevel;
+    send({ type: "settings", effectiveSettings });
     if (cancelled) throw new Error("Cancelled during Pi initialization");
     await session.prompt(input.definition.task);
   } catch (caught) {

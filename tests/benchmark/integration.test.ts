@@ -52,7 +52,10 @@ test("real Pi sessions: two models × two runs, fresh isolation, traces and JSON
     const originalHash = await hashTree(join(directory, definition.fixture));
     const models = parseModels({
       object: "list",
-      data: [{ id: "mock/pass-a" }, { id: "mock/pass-b" }],
+      data: [
+        { id: "mock/pass-a", supported_sampling_parameters: ["temperature", "reasoning_effort"] },
+        { id: "mock/pass-b" },
+      ],
     });
     const output = join(scratch, "results");
     const results = await runBenchmark({
@@ -64,6 +67,9 @@ test("real Pi sessions: two models × two runs, fresh isolation, traces and JSON
       output,
       apiKey: fakeKey,
       workerPath,
+      modelSettings: {
+        "mock/pass-a": { temperature: 0.25, reasoningEffort: "low", maxTokens: 333 },
+      },
     });
     assert.equal(results.status, "complete");
     assert.equal(results.schemaVersion, 2);
@@ -71,6 +77,20 @@ test("real Pi sessions: two models × two runs, fresh isolation, traces and JSON
     assert.equal(new Set(results.runs.map((run) => run.workspace)).size, 4);
     for (const run of results.runs) {
       assert.equal(run.success, true, JSON.stringify(run));
+      const parameters = run.effectiveSettings.requestParameters as Record<string, unknown>[];
+      assert.equal(parameters.length, 2);
+      for (const request of parameters) {
+        if (run.model === "mock/pass-a")
+          assert.deepEqual(request, {
+            temperature: 0.25,
+            reasoning_effort: "low",
+            max_tokens: 333,
+          });
+        else {
+          assert.equal(request.temperature, undefined);
+          assert.equal(request.reasoning_effort, undefined);
+        }
+      }
       assert.equal(run.modelRequests, 2);
       assert.equal(run.agentTurns, 2);
       assert.equal(run.toolCalls, 1);
