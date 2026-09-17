@@ -18,19 +18,6 @@ export interface BenchmarkDefinition {
   systemPrompt?: string;
   validationMode?: "none";
 }
-export interface ModelPricing {
-  inputPerMillion: number;
-  outputPerMillion: number;
-  cachedInputPerMillion?: number;
-  requestUsd?: number;
-}
-export interface PricingSnapshot {
-  schemaVersion: 1;
-  currency: "USD";
-  asOf: string;
-  source: string;
-  models: Record<string, ModelPricing>;
-}
 export interface ReportedUsage {
   inputTokens: number | null;
   outputTokens: number | null;
@@ -121,7 +108,7 @@ export interface TokenTotals {
   inputAmplificationVsLastRequest: number | null;
 }
 export interface RunResult {
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: string;
   benchmark: string;
   model: string;
@@ -144,9 +131,6 @@ export interface RunResult {
   toolErrors: number;
   toolCallsByType: Record<string, number>;
   tokens: TokenTotals;
-  estimatedCostUsd: number | null;
-  observedEstimatedCostUsd: number | null;
-  pricing: ModelPricing | null;
   validation: {
     checked?: boolean;
     passed: boolean;
@@ -175,7 +159,6 @@ export interface ModelAggregate {
   runs: number;
   successes: number;
   successRate: number | null;
-  costUsd: Distribution;
   wallTimeMs: Distribution;
   inputTokens: Distribution;
   outputTokens: Distribution;
@@ -183,12 +166,11 @@ export interface ModelAggregate {
   toolCalls: Distribution;
 }
 export interface Results {
-  schemaVersion: 1;
+  schemaVersion: 2;
   status: "running" | "complete" | "cancelled";
   timestamp: string;
   metadata: Record<string, unknown>;
   definition: BenchmarkDefinition;
-  pricing: PricingSnapshot | null;
   plannedRuns: number;
   runs: RunResult[];
   aggregates: ModelAggregate[];

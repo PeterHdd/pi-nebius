@@ -15,21 +15,20 @@ Inspected 2026-09-16. Pi published packages: **0.85.1**. Current repository head
 
 `before_provider_request` counts logical adapter calls, not necessarily every HTTP attempt. `after_provider_response` occurs after successful response acquisition and lacks raw stream usage. Neither alone satisfies request-level accounting across retries. The observer therefore instruments the existing adapter's fetch call and passes request arguments and body bytes through unchanged. Session events provide separate turn/tool boundaries; requests during default Pi compaction are labeled and included.
 
-## Nebius usage, models and pricing
+## Nebius usage and models
 
 - [Chat Completions API](https://docs.tokenfactory.nebius.com/api-reference/inference/create-chat-completion) and [OpenAPI schema](https://api.tokenfactory.nebius.com/openapi.json): `Usage` requires `prompt_tokens`, `completion_tokens`, and `total_tokens`; optional prompt details include `cached_tokens`, and optional completion details include `reasoning_tokens`. Streaming supports `stream_options.include_usage`, which the existing provider already enables.
-- [List models](https://docs.tokenfactory.nebius.com/api-reference/models/list-models): `verbose=true` returns rich metadata, including context length, modality, pricing strings, and optional capabilities. `created` and response fingerprints do not establish an immutable model revision. No revision field is documented in `RichModel`.
-- Pricing includes `prompt`, `completion`, `request`, and other modality-related strings, but the inspected schema does not define a sufficiently clear unit conversion to Pi's USD/million-token rates. Costs therefore use a separate explicit, dated snapshot and remain unknown when pricing or usage is incomplete.
+- [List models](https://docs.tokenfactory.nebius.com/api-reference/models/list-models): `verbose=true` returns rich metadata, including context length, modality and optional capabilities. `created` and response fingerprints do not establish an immutable model revision. No revision field is documented in `RichModel`.
 
 No live key was available. Documentation defines the supported fields; tests exercise them using schema-shaped fixtures. No fixture is presented as a recording of an authenticated Nebius account response.
 
-## Agentic Cost Benchmark cookbook
+## Agentic benchmark methodology
 
 Read the official [cookbook article](https://dev.nebius.com/cookbook/agent-cost-benchmark) and its [implementation](https://github.com/nebius/token-factory-cookbook/blob/main/agents/agent-cost-comparison-1/agent_cost_comparison_1.py).
 
-Its methodology runs the same data-analysis task through a filesystem agent with per-model input copies, validates generated JSON against expected values, accumulates message usage/tool counts, and computes costs from configured rates. It retains recoverable usage after errors/timeouts rather than treating failed runs as free. The Pi runner retains these methodological choices while using coding fixtures, external executable validators, and physical-request traces.
+Its methodology runs the same data-analysis task through a filesystem agent with per-model input copies, validates generated JSON against expected values, accumulates message usage/tool counts,. It retains recoverable usage after errors/timeouts rather than discarding failed runs. The Pi runner retains these methodological choices while using coding fixtures, external executable validators, and physical-request traces.
 
-The cookbook uses Deep Agents and includes a model-specific harness-middleware workaround. This project copies neither the agent framework nor that behavioral change. It does not import cookbook model prices or benchmark results as current facts about Pi. Our repetitions, timing boundaries, unknown-usage handling, and pricing snapshots are explicit so comparisons can be audited.
+The cookbook uses Deep Agents and includes a model-specific harness-middleware workaround. This project copies neither the agent framework nor that behavioral change. Our repetitions, timing boundaries, and unknown-usage handling are explicit so comparisons can be audited.
 
 ## Measurement limits
 

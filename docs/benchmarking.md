@@ -8,7 +8,7 @@ A traditional inference benchmark measures `prompt → model → response`. Here
 task → Pi → model → tool → model → tool → … → deterministic validation
 ```
 
-Tokens/second alone cannot describe task efficiency. A slower model that solves a task in five turns can finish sooner and cost less than a faster model that needs twenty turns. Results therefore expose success, time, cumulative usage, tools, and cost separately. There is no composite score or LLM judge.
+Tokens/second alone cannot describe task efficiency. A slower model that solves a task in five turns can finish sooner than a faster model that needs twenty turns. Results therefore expose success, time, cumulative usage, and tools separately. There is no composite score or LLM judge.
 
 ## Run inside Pi
 
@@ -33,8 +33,7 @@ npm run benchmark -- \
   --models 'EXACT_NEBIUS_MODEL_A,EXACT_NEBIUS_MODEL_B' \
   --runs 3 \
   --timeout 120 \
-  --output benchmark-results/auth-experiment \
-  --pricing my-pricing.yaml
+  --output benchmark-results/auth-experiment
 ```
 
 Alternatively, after `npm install --global .` from this checkout, use `pi-nebius benchmark ...`. The package is not published to npm. The compiled command can also be invoked with `node dist/benchmark/cli.js benchmark ...`.
@@ -48,7 +47,6 @@ Model IDs are exact Nebius IDs such as `vendor/model`, without an extra `nebius/
 | `--runs` | Repetitions per model; default 1 |
 | `--timeout` | Agent-process deadline in seconds; overrides the definition |
 | `--output` | New directory; existing directories are rejected |
-| `--pricing` | Optional dated pricing snapshot; omitted means unknown cost |
 | `--concurrency` | **1 only in v1**, for identical unmodified Pi system prompts |
 
 Runs are scheduled round-robin: A1, B1, A2, B2. Ctrl-C stops the active session, retains its partial measurements, writes a cancelled result set, and does not start pending runs. Exit codes: 0 when all runs pass, 1 when any run fails, 2 for configuration/preflight errors, 130 for cancellation. Input/configuration errors before a run begins do not create a complete result set.
@@ -63,7 +61,7 @@ Parallel runs would need an additional isolation layer exposing the same absolut
 
 ```text
 CLI / runner
-  ├─ parse benchmark and pricing snapshots
+  ├─ parse benchmark definitions
   ├─ freeze fixture + trusted validators
   └─ for each model/repetition:
        fresh active workspace + private Pi config
@@ -80,7 +78,7 @@ Pi's public `createAgentSession`, `DefaultResourceLoader`, `SettingsManager.inMe
 
 The provider's supported `fetch` injection observes every Chat Completions HTTP attempt, including adapter retries and Pi's own compaction requests. It forwards request arguments and response bytes unchanged. The observer reads only usage and small response metadata fields from the streaming protocol; Pi still parses content, constructs tools, executes them, and manages the conversation.
 
-No user-installed extensions, skills, themes, prompt templates, context files, saved sessions, or `models.json` settings enter a run. This defines the clean benchmark configuration, identically for all models. Pi's own default retries and automatic compaction remain **unchanged**, are recorded, and their requests count toward cost. There is no benchmark-added compression/pruning. Pi can clamp its default thinking level to a model's capabilities; the effective setting and model definition are recorded rather than forced into unsupported behavior.
+No user-installed extensions, skills, themes, prompt templates, context files, saved sessions, or `models.json` settings enter a run. This defines the clean benchmark configuration, identically for all models. Pi's own default retries and automatic compaction remain **unchanged**, are recorded, and their requests count toward token usage. There is no benchmark-added compression/pruning. Pi can clamp its default thinking level to a model's capabilities; the effective setting and model definition are recorded rather than forced into unsupported behavior.
 
 ## Definitions and fixtures
 
@@ -181,35 +179,6 @@ Instrumentation itself has overhead, including IPC and trace writes. The HTTP ob
 
 Failure categories include `validation_failed`, `timeout`, `model_api_error`, `rate_limit`, `tool_error`, `agent_error`, `context_limit`, `cancelled`, and `unknown`. Timeout/cancellation take priority. `tool_error` means failed validation accompanied by tool errors; it does not prove the errors caused the failure. Original redacted details and individual HTTP statuses remain available. Recovered attempt failures remain in the trace even when the task ultimately succeeds.
 
-## Cost and pricing snapshots
-
-The inspected Nebius model schema contains pricing strings, but does not clearly specify their units. Neither catalog defaults nor Pi's zero cost fields are used as prices. Supply verified rates separately:
-
-```yaml
-schemaVersion: 1
-currency: USD
-asOf: 2026-09-16
-source: "URL or description of your verified price source"
-models:
-  vendor/exact-model-id:
-    inputPerMillion: 1.00
-    outputPerMillion: 2.00
-    cachedInputPerMillion: 0.25
-```
-
-These numbers illustrate the format, not actual Nebius pricing. See [pricing.example.yaml](../examples/pricing.example.yaml). Optional `requestUsd` adds an explicit fixed charge per usage-reported request if your pricing requires it.
-
-For each request:
-
-```text
-((prompt_tokens - cached_tokens) × inputPerMillion
- + cached_tokens × cachedInputPerMillion
- + completion_tokens × outputPerMillion) / 1,000,000
- + optional requestUsd
-```
-
-Omitting `cachedInputPerMillion` explicitly uses the normal input rate. When a distinct cached rate is specified but cached usage is missing, cost is unknown. Missing model pricing or any request's required usage makes `estimatedCostUsd` null; `observedEstimatedCostUsd` preserves a subtotal where calculable. Reasoning tokens are already in completion usage. Estimates exclude taxes, credits, tier discounts, billing reconciliation, and undocumented charge categories. The full snapshot, its date/source, and a SHA-256 hash are retained with results.
-
 ## Results and reproducibility
 
 ```text
@@ -225,11 +194,11 @@ OUTPUT/
     pi/                           # isolated Pi config, without credentials or saved conversation
 ```
 
-`schemaVersion: 1` applies to result documents and journal entries. Each run includes:
+`schemaVersion: 2` applies to result documents and journal entries. Each run includes:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "benchmark": "fix-auth-bug",
   "model": "vendor/model",
   "modelRevision": null,
@@ -246,7 +215,6 @@ OUTPUT/
     "lastRequestInputTokens": 220,
     "finalContextSizeTokens": null
   },
-  "estimatedCostUsd": null,
   "observation": {
     "requests": [
       {"request": 1, "usage": {"inputTokens": 100, "outputTokens": 40}},
@@ -258,9 +226,9 @@ OUTPUT/
 
 This is an abridged illustrative schema, not a live model result. The complete TypeScript contract is [types.ts](../src/benchmark/types.ts).
 
-Metadata includes timestamp, Pi/package/Node versions, OS/architecture, benchmark definition/hash, fixture hash (including paths/content/executable bits), validator hash, frozen model definitions, effective Pi settings, system-prompt hashes, and pricing snapshot/hash. `.git` history is not required: the fixture content hash identifies the actual inputs. Response `model`, request ID, and `system_fingerprint` are captured when present. A fingerprint is **not** asserted to be a model revision; `modelRevision` remains null because Nebius's inspected catalog has no documented exact revision identifier.
+Metadata includes timestamp, Pi/package/Node versions, OS/architecture, benchmark definition/hash, fixture hash (including paths/content/executable bits), validator hash, frozen model definitions, effective Pi settings, system-prompt hashes. `.git` history is not required: the fixture content hash identifies the actual inputs. Response `model`, request ID, and `system_fingerprint` are captured when present. A fingerprint is **not** asserted to be a model revision; `modelRevision` remains null because Nebius's inspected catalog has no documented exact revision identifier.
 
-The terminal report shows success counts, median cost/time, and mean cumulative input/output, turns, and tools. JSON also contains means, medians, min/max, population standard deviations, and known/missing counts. Failed runs remain in aggregates; unknown values are excluded from arithmetic, never converted to zero. Every individual result remains available. `results.json` is atomically updated after each completed run and on handled cancellation. An abrupt kill of the runner itself may leave status `running`; journals preserve observations already received, but resumable execution is not implemented.
+The terminal report places metrics down rows and models across columns. It shows success counts, median task duration, mean input/output tokens, turns and tools, observed TTFT, end-to-end output throughput, and failure diagnostics. Observed TTFT is the first agent request’s first content timestamp minus that request’s start timestamp, aggregated as the median across runs with known timing. It includes network latency but excludes worker startup; the first nonempty text, reasoning, or tool-function delta counts, while role-only and empty tool headers do not. Streaming chunks may contain multiple tokens, so this is a client-observed approximation of TTFT, not a server token-generation timestamp. Throughput is the sum of output tokens divided by the sum of complete task durations, including network, tools, and validation. It includes failed runs and is unknown if any run lacks output usage or a positive duration. This is not pure model decoding speed. Existing JSON request traces contain the timestamps needed to calculate observed TTFT. JSON also contains means, medians, min/max, population standard deviations, and known/missing counts. Failed runs remain in aggregates; unknown values are excluded from arithmetic, never converted to zero. Every individual result remains available. `results.json` is atomically updated after each completed run and on handled cancellation. An abrupt kill of the runner itself may leave status `running`; journals preserve observations already received, but resumable execution is not implemented.
 
 Traces omit prompts, model text, tool arguments, and successful tool output. Error details and validator logs are retained with the known API key redacted. This cannot identify arbitrary secrets embedded in your own fixtures/logs; use credential-free fixtures. Workspace archives intentionally contain the task's output files.
 
@@ -274,10 +242,12 @@ npm test
 npm run benchmark:demo
 ```
 
-The demo runs real Pi SDK sessions and file tools, with **scripted mock responses and invented prices**. It exercises two mock models × two repetitions and leaves inspectable results in `benchmark-results/mock-demo-*`. It is not evidence about any Nebius-hosted model's performance.
+The demo runs real Pi SDK sessions and file tools, with **scripted mock responses**. It exercises two mock models × two repetitions and leaves inspectable results in `benchmark-results/mock-demo-*`. It is not evidence about any Nebius-hosted model's performance.
 
-The regression suite covers parsing, pricing, isolation, event instrumentation, fragmented SSE observation, cumulative usage, cost, aggregation, validation, JSON round trips, API errors, graceful cancellation, hard timeout, CLI input handling, all four fixture validators, and real Pi tool loops. Provider-extension tests also remain in the suite.
+The regression suite covers parsing, isolation, event instrumentation, fragmented SSE observation, cumulative usage, aggregation, validation, JSON round trips, API errors, graceful cancellation, hard timeout, CLI input handling, all four fixture validators, and real Pi tool loops. Provider-extension tests also remain in the suite.
 
-No live benchmark has been run in this environment: `NEBIUS_API_KEY` was unavailable. To complete that check, choose two tool-capable IDs from your discovered catalog and run the first command above with `--runs 1`. Costs require a verified pricing snapshot. Tests certify the measurement wiring, not the capabilities, stability, or billing behavior of every hosted model.
+No live benchmark has been run in this environment: `NEBIUS_API_KEY` was unavailable. To complete that check, choose two tool-capable IDs from your discovered catalog and run the first command above with `--runs 1`. Tests certify the measurement wiring, not the capabilities, stability, or billing behavior of every hosted model.
 
 See [benchmark-research.md](benchmark-research.md) for inspected source APIs and Nebius methodology.
+
+Result schema version 2 removes monetary fields from version 1 (per-run estimates, pricing snapshots, aggregate costs, and the pricing hash). Existing saved results are not rewritten. Task definitions still use schema version 1.

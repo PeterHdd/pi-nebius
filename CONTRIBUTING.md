@@ -25,5 +25,6 @@ Never commit credentials, `.env` files, private fixtures, `node_modules`, or gen
 benchmark results. The secret scanner scans Git-visible files and history, so a
 credential committed and later deleted must still be revoked and removed from history.
 
-Releases follow [docs/releasing.md](docs/releasing.md). Changes to workflow permissions,
+Release Please generates changelog/version updates in a release PR; merging it publishes
+the GitHub release after CI passes. Changes to workflow permissions,
 tool checksum pins, dependency lockfiles, and authentication deserve particular review.

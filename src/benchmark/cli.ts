@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { randomUUID } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { discoverModels, MISSING_KEY } from "../discovery.ts";
-import { loadDefinition, parsePricing, positive } from "./definition.ts";
+import { loadDefinition, positive } from "./definition.ts";
 import { redactor } from "./instrumentation.ts";
 import { terminalReport } from "./report.ts";
 import { runBenchmark } from "./runner.ts";
@@ -18,7 +18,6 @@ const HELP = `Usage: pi-nebius benchmark --benchmark DIRECTORY --models ID,ID [o
   --timeout SECONDS  Per-agent deadline, including worker/session startup
   --output PATH      New result directory (must not already exist)
   --concurrency N    v1 supports 1 only: identical Pi prompts without cwd rewriting
-  --pricing PATH     Dated USD-per-million pricing snapshot; absent means unknown cost
   --help             Show this help
 
 Each run receives a fresh fixture copy and an isolated Pi configuration.
@@ -45,7 +44,6 @@ async function main() {
       timeout: { type: "string" },
       output: { type: "string" },
       concurrency: { type: "string" },
-      pricing: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -62,7 +60,6 @@ async function main() {
   if (runs * ids.length > 10000) throw new Error("At most 10,000 runs per invocation");
   const { definition, directory } = await loadDefinition(values.benchmark);
   if (values.timeout) definition.timeout = positive(Number(values.timeout), "timeout");
-  const pricing = values.pricing ? parsePricing(await readFile(values.pricing, "utf8")) : null;
   const apiKey = process.env.NEBIUS_API_KEY?.trim();
   if (!apiKey) throw new Error(MISSING_KEY);
   const cache = await mkdtemp(join(tmpdir(), "pi-nebius-benchmark-discovery-"));
@@ -85,8 +82,6 @@ async function main() {
         `${new Date().toISOString().replaceAll(":", "-")}-${randomUUID().slice(0, 8)}`,
       ),
   );
-  if (!pricing)
-    process.stderr.write("No pricing snapshot supplied: monetary costs will be null.\n");
   const controller = new AbortController();
   const abort = () => controller.abort();
   process.once("SIGINT", abort);
@@ -100,7 +95,6 @@ async function main() {
       concurrency,
       output,
       apiKey,
-      pricing,
       signal: controller.signal,
       onRun: (run) =>
         process.stderr.write(`${run.model} #${run.run}: ${run.success ? "PASS" : run.failure}\n`),

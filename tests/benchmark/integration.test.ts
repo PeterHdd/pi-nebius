@@ -43,7 +43,7 @@ test("all four deterministic suites reject originals and accept reference soluti
   }
 });
 
-test("real Pi sessions: two models × two runs, fresh isolation, traces, costs and JSON report", {
+test("real Pi sessions: two models × two runs, fresh isolation, traces and JSON report", {
   timeout: 30000,
 }, async () => {
   const scratch = await mkdtemp(join(tmpdir(), "bench-sdk-"));
@@ -64,20 +64,9 @@ test("real Pi sessions: two models × two runs, fresh isolation, traces, costs a
       output,
       apiKey: fakeKey,
       workerPath,
-      pricing: {
-        schemaVersion: 1,
-        currency: "USD",
-        asOf: "2026-09-16",
-        source: "test fixture, not real pricing",
-        models: Object.fromEntries(
-          models.map((model) => [
-            model.id,
-            { inputPerMillion: 1, outputPerMillion: 2, cachedInputPerMillion: 0.25 },
-          ]),
-        ),
-      },
     });
     assert.equal(results.status, "complete");
+    assert.equal(results.schemaVersion, 2);
     assert.equal(results.runs.length, 4);
     assert.equal(new Set(results.runs.map((run) => run.workspace)).size, 4);
     for (const run of results.runs) {
@@ -91,7 +80,6 @@ test("real Pi sessions: two models × two runs, fresh isolation, traces, costs a
       assert.equal(run.tokens.cachedInputTokens, 50);
       assert.equal(run.tokens.reasoningTokens, 7);
       assert.equal(run.tokens.lastRequestInputTokens, 220);
-      assert.ok(Math.abs((run.estimatedCostUsd ?? 0) - 0.0004025) < 1e-12);
       assert.equal(run.validation.exitCode, 0);
       assert.equal(run.fixtureHash, originalHash);
       assert.notEqual(run.finalWorkspaceHash, originalHash);
@@ -104,6 +92,10 @@ test("real Pi sessions: two models × two runs, fresh isolation, traces, costs a
     assert.equal(await hashTree(join(directory, definition.fixture)), originalHash);
     const serialized = await readFile(join(output, "results.json"), "utf8");
     assert.doesNotMatch(serialized, new RegExp(fakeKey));
+    assert.doesNotMatch(
+      serialized,
+      /"(?:pricing|pricingHash|estimatedCostUsd|observedEstimatedCostUsd|costUsd|cost)"/,
+    );
     assert.deepEqual(JSON.parse(serialized), results);
     const report = terminalReport(results);
     assert.match(report, /mock\/pass-a/);
@@ -123,7 +115,6 @@ test("real Pi sessions: two models × two runs, fresh isolation, traces, costs a
         concurrency: 1,
         output,
         apiKey: fakeKey,
-        pricing: null,
         workerPath,
       }),
       /EEXIST/,
@@ -153,13 +144,11 @@ test("failure runs remain in output: deterministic rejection, API failure, timeo
       concurrency: 1,
       output: join(scratch, "failures"),
       apiKey: fakeKey,
-      pricing: null,
       workerPath,
     });
     assert.equal(results.runs.length, 2);
     const failed = results.runs.find((run) => run.model === "mock/fail");
     assert.equal(failed?.failure, "validation_failed");
-    assert.equal(failed?.estimatedCostUsd, null);
     const error = results.runs.find((run) => run.model === "mock/error");
     assert.equal(error?.failure, "model_api_error", JSON.stringify(error));
     assert.equal(error?.tokens.usageComplete, false);
@@ -175,7 +164,6 @@ test("failure runs remain in output: deterministic rejection, API failure, timeo
       concurrency: 1,
       output: join(scratch, "timeout"),
       apiKey: fakeKey,
-      pricing: null,
       workerPath,
     });
     assert.equal(timedOut.runs.length, 1);
@@ -194,7 +182,6 @@ test("failure runs remain in output: deterministic rejection, API failure, timeo
       concurrency: 1,
       output: join(scratch, "cancelled"),
       apiKey: fakeKey,
-      pricing: null,
       workerPath,
       signal: controller.signal,
     }).finally(() => clearTimeout(timer));
@@ -250,7 +237,6 @@ test("hard timeout kills an unresponsive worker and refuses unsafe output/concur
       concurrency: 1,
       output: join(scratch, "result"),
       apiKey: fakeKey,
-      pricing: null,
       workerPath: join(root, "tests/benchmark/hung-worker.mjs"),
     };
     const results = await runBenchmark(options);

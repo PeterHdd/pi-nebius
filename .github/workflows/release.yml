@@ -1,48 +1,50 @@
-name: Draft GitHub release
+name: Release
 
 on:
-  push:
-    tags: ['v*']
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
 
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
 jobs:
-  checks:
-    uses: ./.github/workflows/ci.yml
-
-  version:
+  release:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '22'
-          package-manager-cache: false
-      - run: node scripts/check-version.mjs
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-
-  draft:
-    needs: [checks, version]
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    permissions:
-      contents: write
-    steps:
-      # No checkout, dependency installation, or repository scripts in the write-token job.
-      - name: Create draft prerelease for maintainer review
+      # Do not prepare/publish from a stale successful run after main has moved.
+      - name: Check the tested commit is still main
+        id: head
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
-            echo 'Release already exists; leaving it unchanged.'
-          else
-            gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease \
-              --title "$RELEASE_TAG" --generate-notes
+          current_sha=$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq .object.sha)
+          if [ "$current_sha" = "$TESTED_SHA" ]; then
+            echo 'current=true' >> "$GITHUB_OUTPUT"
           fi
+      - name: Require release credentials
+        if: steps.head.outputs.current == 'true'
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo '::error::Add RELEASE_PLEASE_TOKEN as an Actions repository secret with Contents, Pull requests, and Issues read/write permissions for this repository.'
+            exit 1
+          fi
+      # No checkout or execution of repository code in the credential-bearing job.
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
+        if: steps.head.outputs.current == 'true'
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          target-branch: main
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

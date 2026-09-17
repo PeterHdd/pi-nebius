@@ -2,7 +2,7 @@ import { readFile, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { parse } from "yaml";
 import { isRecord } from "../models.ts";
-import type { BenchmarkDefinition, Command, PricingSnapshot } from "./types.ts";
+import type { BenchmarkDefinition, Command } from "./types.ts";
 
 export function positive(value: unknown, name: string, maximum = 86400): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1 || value > maximum)
@@ -109,32 +109,4 @@ export async function loadDefinition(path: string) {
   )
     throw new Error("Fixture and validation directories must be separate and must not overlap");
   return { definition, directory, source };
-}
-export function parsePricing(source: string): PricingSnapshot {
-  const value: unknown = parse(source, { maxAliasCount: 0, uniqueKeys: true });
-  if (
-    !isRecord(value) ||
-    value.schemaVersion !== 1 ||
-    value.currency !== "USD" ||
-    !isRecord(value.models)
-  )
-    throw new Error("Pricing requires schemaVersion: 1, currency: USD, and models");
-  fields(value, ["schemaVersion", "currency", "asOf", "source", "models"]);
-  text(value.source, "pricing source");
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(text(value.asOf, "pricing asOf")) ||
-    !Number.isFinite(Date.parse(String(value.asOf))) ||
-    new Date(String(value.asOf)).toISOString().slice(0, 10) !== value.asOf
-  )
-    throw new Error("Pricing asOf must be YYYY-MM-DD");
-  for (const [id, pricing] of Object.entries(value.models)) {
-    if (!isRecord(pricing)) throw new Error(`Invalid pricing for ${id}`);
-    fields(pricing, ["inputPerMillion", "outputPerMillion", "cachedInputPerMillion", "requestUsd"]);
-    for (const key of ["inputPerMillion", "outputPerMillion", ...Object.keys(pricing)]) {
-      const rate = pricing[key];
-      if (typeof rate !== "number" || !Number.isFinite(rate) || rate < 0)
-        throw new Error(`Invalid ${key} price for ${id}`);
-    }
-  }
-  return value as unknown as PricingSnapshot;
 }

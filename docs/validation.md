@@ -34,9 +34,9 @@ These establish provider integration and agent/tool transport. They do **not** e
 
 ## Benchmark verification
 
-The final type check, Biome lint, build, and complete 35-test regression suite passed. Benchmark tests cover definition/pricing parsing, copy isolation, event instrumentation, byte-preserving streaming observation, cumulative tokens, cost, repeated-run aggregation, validation, failure classification, JSON serialization, cancellation, and hard worker timeouts. All four original fixtures fail their trusted checks; all four reference solutions pass.
+The final type check, Biome lint, build, and complete 35-test regression suite passed. Benchmark tests cover definition parsing, copy isolation, event instrumentation, byte-preserving streaming observation, cumulative tokens, repeated-run aggregation, validation, failure classification, JSON serialization, cancellation, and hard worker timeouts. All four original fixtures fail their trusted checks; all four reference solutions pass.
 
-`npm run benchmark:demo` passed with **two mock models × two runs** through real Pi SDK sessions. All four runs passed deterministic validation and shared one system-prompt hash. Each recorded two HTTP requests, two turns, one executed write tool, 320 cumulative input tokens, 60 output tokens, 50 cached input tokens, and seven reasoning tokens. Invented demo rates produced an estimated $0.0004025 per run. These are scripted measurements, not hosted-model performance or pricing.
+`npm run benchmark:demo` passed with **two mock models × two runs** through real Pi SDK sessions. All four runs passed deterministic validation and shared one system-prompt hash. Each recorded two HTTP requests, two turns, one executed write tool, 320 cumulative input tokens, 60 output tokens, 50 cached input tokens, and seven reasoning tokens. These are scripted measurements, not hosted-model performance.
 
 The retained local result is `benchmark-results/mock-demo-1789550582003/results.json`, with individual runs, traces, and archived workspaces alongside it. Result files are excluded from the distributable package. The demo initially encountered a sandbox IPC permission error and passed after running with the required permission; package inspection similarly required access to npm's cache.
 
