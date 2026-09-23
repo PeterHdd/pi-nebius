@@ -3,6 +3,14 @@
 Versions use Semantic Versioning. Entries describe changes included in the named version;
 a version is released only when its matching Git tag and GitHub release are published.
 
+## [0.4.0](https://github.com/PeterHdd/pi-nebius/compare/v0.3.2...v0.4.0) (2026-09-23)
+
+
+### Features
+
+* add request-level benchmark token observability ([33385c2](https://github.com/PeterHdd/pi-nebius/commit/33385c2364bf958607d0c8d0a2ac8d6bf6899663))
+* add request-level benchmark token observability ([5ecdaea](https://github.com/PeterHdd/pi-nebius/commit/5ecdaea0bda25b4df3fcfe50d5b9e0e15883350c))
+
 ## [0.3.2](https://github.com/PeterHdd/pi-nebius/compare/v0.3.1...v0.3.2) (2026-09-17)
 
 
