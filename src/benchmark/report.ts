@@ -1,4 +1,5 @@
 import { distribution } from "./metrics.ts";
+import { requestReport } from "./request-report.ts";
 import type { Results, RunResult } from "./types.ts";
 
 /** Client-observed first generated content on the first agent request, not worker startup. */
@@ -106,6 +107,13 @@ export function terminalReport(results: Results): string {
         ]
       : []),
     "",
+    ...results.runs.flatMap(requestReport),
+    "",
+    "Request tokens are provider-reported per HTTP attempt, including retries and compaction when observed.",
+    "Δ input is the change from the preceding request, not tokens attributable to its tools.",
+    "Context sizes are measured UTF-8 JSON bytes including message wrappers; category token counts are unavailable.",
+    "Tool text sizes exclude images and may already be truncated by Pi. Commands, arguments, and successful output text are not stored.",
+    "Input amplification = cumulative input / last agent request input; not a waste score or final context size.",
     "Detailed per-run measurements and validator output: results.json.",
   ].join("\n");
 }

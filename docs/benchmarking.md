@@ -251,3 +251,44 @@ No live benchmark has been run in this environment: `NEBIUS_API_KEY` was unavail
 See [benchmark-research.md](benchmark-research.md) for inspected source APIs and Nebius methodology.
 
 Result schema version 2 removes monetary fields from version 1 (per-run estimates, pricing snapshots, aggregate costs, and the pricing hash). Existing saved results are not rewritten. Task definitions still use schema version 1.
+
+
+## Request-level observability
+
+After the comparison summary, each run shows its individual HTTP requests: provider-reported
+input/output tokens, cached input tokens when available, change in input from the preceding request,
+and tool calls produced by the response. A request can produce zero, one, or multiple tool calls.
+Retries and compaction requests remain separate rows; a request is not necessarily an agent turn.
+Missing usage stays `n/a`, including totals when any required usage is missing.
+
+The context-composition table measures **UTF-8 serialized JSON bytes**, not tokens. Categories are
+system/developer messages, tool schemas, user messages, assistant messages (including tool arguments),
+tool-result messages, and other messages. Message wrapper fields are included; array separators and
+other HTTP payload fields are not. File reads and shell output are subtypes of tool results, not
+additional categories. Category token counts are unavailable; no tokenizer estimates are substituted.
+Input-token differences are net changes, not causal attribution to the most recent tool.
+
+Tool rows use local labels such as `T1 read` and `T2 bash`. They show model-facing text bytes/lines,
+the originating request, and the subsequent request numbers containing that tool-call ID. Repeated
+HTTP attempts count as repeated inclusions. These are observations after Pi's tool processing;
+original shell stdout/stderr may already have been truncated. Text sizes exclude images. If a request
+body cannot be inspected without consuming it, context measurements are unavailable and inclusion
+lists are labelled partial.
+
+Outputs of at least 16 KiB receive a large-output observation. Matching tool names and canonicalized
+arguments flag repeated operations; matching result content also flags repeated results. This does
+not establish that files or external state were unchanged, or that a call was avoidable. No tool calls
+are blocked and no output or context is reduced. Only sizes, IDs, names, and per-run keyed fingerprints
+are added to traces; successful output, commands, paths in arguments, and prompts are not retained.
+Fingerprint keys are ephemeral and are not saved; fingerprints are not comparable across runs.
+
+Input amplification is cumulative input over **all observed HTTP attempts** divided by the final
+agent request's input tokens. It is unavailable with incomplete usage or a zero/missing denominator.
+Compaction can decrease the denominator, so the ratio is not a waste score. Final-request input also
+is not the context size after the response. Successful validated runs show input + output tokens as
+**tokens to validated solution**; failures and unvalidated runs are labelled separately. Cached and
+reasoning token counters are details of usage, not additional tokens to add to that sum.
+
+These are additive optional fields in result schema 2 (`RequestTrace.context`,
+`RequestTrace.generatedToolCalls`, and tool fingerprints/output sizes). Old reports remain readable;
+absent observations are unavailable. Individual data remains in `results.json` and the live journals.

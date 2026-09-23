@@ -109,6 +109,10 @@ middle values for an even number of runs). With one run, both show that run's me
 Failed runs contribute to the performance metrics; missing measurements appear as `n/a`.
 Custom prompts have no automatic correctness check, so a completed run does not establish success.
 
+After the summary, a per-request trace shows token usage, context sizes in bytes, tool-output sizes,
+and repeated operations. These observations help identify where context grows without changing
+the agent. Byte counts are not token estimates, and repeated calls are not necessarily wasteful.
+
 Detailed results, request settings, and resulting files are saved under `benchmark-results/`.
 Benchmarks use your saved model settings at the start; later changes do not affect an active comparison.
 
