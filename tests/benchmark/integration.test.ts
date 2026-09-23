@@ -92,6 +92,13 @@ test("real Pi sessions: two models × two runs, fresh isolation, traces and JSON
         }
       }
       assert.equal(run.modelRequests, 2);
+      const firstRequest = run.observation.requests[0];
+      const secondRequest = run.observation.requests[1];
+      assert.ok((firstRequest?.context?.bytes.tools ?? 0) > 0);
+      assert.equal(firstRequest?.generatedToolCalls?.[0]?.name, "write");
+      assert.equal(run.observation.tools[0]?.request, 1);
+      assert.ok((run.observation.tools[0]?.output?.bytes ?? 0) > 0);
+      assert.equal(secondRequest?.context?.toolResults[0]?.id, run.observation.tools[0]?.id);
       assert.equal(run.agentTurns, 2);
       assert.equal(run.toolCalls, 1);
       assert.equal(run.toolErrors, 0);

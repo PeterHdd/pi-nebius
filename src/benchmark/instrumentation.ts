@@ -1,6 +1,7 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import { isRecord } from "../models.ts";
+import { canonical, observeContext, textSize } from "./context-observation.ts";
 import type { Observation, ReportedUsage, RequestTrace } from "./types.ts";
 
 export const hash = (text: string) => createHash("sha256").update(text).digest("hex");
@@ -51,6 +52,11 @@ export function redactor(secrets: string[]) {
 export class Instrumentation {
   readonly state = emptyObservation();
   private compacting = false;
+  // Per-run HMAC keys are never persisted: compare values without retaining commands or file text.
+  private readonly fingerprintKey = randomBytes(32);
+  private fingerprint(value: unknown) {
+    return createHmac("sha256", this.fingerprintKey).update(canonical(value)).digest("hex");
+  }
   private readonly update: (state: Observation) => void;
   private readonly now: () => number;
   private readonly redact: (text: string) => string;
@@ -93,8 +99,18 @@ export class Instrumentation {
       case "auto_retry_start":
         this.state.retries++;
         break;
-      case "tool_execution_start":
+      case "tool_execution_start": {
+        const fingerprint = this.fingerprint(event.args);
+        const previous = this.state.tools.find(
+          (tool) => tool.name === event.toolName && tool.argumentsFingerprint === fingerprint,
+        );
+        const origin = this.state.requests.find((request) =>
+          request.generatedToolCalls?.some((tool) => tool.id === event.toolCallId),
+        );
         this.state.tools.push({
+          request: origin?.request ?? null,
+          argumentsFingerprint: fingerprint,
+          repeatedArgumentsOf: previous?.id ?? null,
           id: event.toolCallId,
           name: event.toolName,
           startedAtMs: at,
@@ -103,6 +119,7 @@ export class Instrumentation {
           error: null,
         });
         break;
+      }
       case "tool_execution_end": {
         const tool = this.state.tools.find((item) => item.id === event.toolCallId);
         if (tool) {
@@ -114,6 +131,11 @@ export class Instrumentation {
       case "message_end": {
         const message = event.message;
         if (message.role === "assistant") {
+          const request = this.state.requests.filter((item) => item.purpose === "agent").at(-1);
+          if (request)
+            request.generatedToolCalls = message.content
+              .filter((block) => block.type === "toolCall")
+              .map((block) => ({ id: block.id, name: block.name }));
           this.state.assistantMessages++;
           this.state.lastAssistantStopReason = message.stopReason;
           if (message.errorMessage)
@@ -138,6 +160,17 @@ export class Instrumentation {
             this.state.tools.push(tool);
           }
           tool.isError = message.isError;
+          const fingerprint = this.fingerprint(message.content);
+          tool.output = { ...textSize(message.content), fingerprint };
+          const previous = this.state.tools.find(
+            (item) =>
+              item !== tool &&
+              item.name === tool.name &&
+              item.argumentsFingerprint !== undefined &&
+              item.argumentsFingerprint === tool.argumentsFingerprint &&
+              item.output?.fingerprint === fingerprint,
+          );
+          tool.repeatedOutputOf = previous?.id ?? null;
           if (message.isError)
             tool.error = this.redact(
               message.content
@@ -160,6 +193,8 @@ export class Instrumentation {
       if (!url.pathname.endsWith("/chat/completions")) return fetcher(input, init);
       const trace: RequestTrace = {
         request: this.state.requests.length + 1,
+        context: observeContext(init?.body),
+        generatedToolCalls: [],
         purpose: this.compacting ? "compaction" : "agent",
         startedAtMs: this.now(),
         endedAtMs: null,

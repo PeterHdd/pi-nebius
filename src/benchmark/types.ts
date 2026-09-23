@@ -26,7 +26,22 @@ export interface ReportedUsage {
   reasoningTokens: number | null;
   totalTokens: number | null;
 }
+export interface RequestContext {
+  measurement: "serialized-json-bytes";
+  bytes: {
+    system: number;
+    tools: number;
+    user: number;
+    assistant: number;
+    toolResults: number;
+    other: number;
+  };
+  messageCount: number;
+  toolResults: Array<{ id: string; bytes: number; lines: number }>;
+}
 export interface RequestTrace {
+  context?: RequestContext | null;
+  generatedToolCalls?: Array<{ id: string; name: string }>;
   request: number;
   purpose: "agent" | "compaction";
   startedAtMs: number;
@@ -42,6 +57,11 @@ export interface RequestTrace {
   streamComplete: boolean;
 }
 export interface ToolTrace {
+  request?: number | null;
+  argumentsFingerprint?: string;
+  repeatedArgumentsOf?: string | null;
+  output?: { bytes: number; lines: number; fingerprint: string };
+  repeatedOutputOf?: string | null;
   id: string;
   name: string;
   startedAtMs: number | null;
