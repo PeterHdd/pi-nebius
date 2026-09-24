@@ -3,6 +3,14 @@
 Versions use Semantic Versioning. Entries describe changes included in the named version;
 a version is released only when its matching Git tag and GitHub release are published.
 
+## [0.5.0](https://github.com/PeterHdd/pi-nebius/compare/v0.4.0...v0.5.0) (2026-09-24)
+
+
+### Features
+
+* show response timing and token usage for Nebius models ([ae3a078](https://github.com/PeterHdd/pi-nebius/commit/ae3a078441fc31d1e2ab9a2e0095428846f5473b))
+* show response timing and token usage for Nebius models ([1182d9d](https://github.com/PeterHdd/pi-nebius/commit/1182d9d3c3eb4ccb667cb98fb7e48f30bd967945))
+
 ## [0.4.0](https://github.com/PeterHdd/pi-nebius/compare/v0.3.2...v0.4.0) (2026-09-23)
 
 
