@@ -59,6 +59,24 @@ Use values supported by the chosen model. Advanced settings change Pi's configur
 model's actual capabilities. The default output limit is up to 4,096 tokens; increase it in the menu
 if your model supports longer responses.
 
+## Response timing
+
+After each Nebius model response, Pi's footer shows the latest request's statistics:
+
+```text
+Nebius · First content: 0.8s · Response: 4.2s · Output: 320 tokens
+```
+
+Timing starts at Pi's pre-request hook. First content is the first nonempty streamed text,
+reasoning, or tool-call content; response time ends when the assistant message completes.
+These are client-observed timings including network latency, not server-only generation times.
+Tool execution is excluded. A prompt with multiple model/tool rounds shows the latest model
+response, not the whole task. Output tokens use the provider's reported usage. Failed or aborted
+requests are labeled instead of displaying potentially incomplete token counts.
+
+This footer applies only to Nebius models in interactive Pi. It clears on the next request,
+model change, or session change; it does not add messages to your conversation.
+
 ## Benchmark inside Pi
 
 To benchmark your selected Nebius model on your own task:

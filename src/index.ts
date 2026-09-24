@@ -10,8 +10,10 @@ import {
 import { registerModelSettingsCommand } from "./model-settings-command.ts";
 import type { NebiusModel } from "./models.ts";
 import { nebiusProvider } from "./provider.ts";
+import { registerResponseStats } from "./response-stats.ts";
 
 export default async function nebius(pi: ExtensionAPI) {
+  registerResponseStats(pi);
   const path = settingsPath(getAgentDir());
   let settings: ModelSettingsMap = {};
   try {
